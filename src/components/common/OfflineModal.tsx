@@ -49,7 +49,7 @@ export const OfflineModal: React.FC = () => {
           <div className="flex items-center justify-between pt-1 border-t border-slate-800">
             <span className="text-slate-300 font-medium">Pháp bảo thu hoạch</span>
             <span className="font-mono-num font-semibold text-sky-400">
-              {offlineReward.itemsGenerated.length} trang bị
+              {formatExactNumber(offlineReward.itemsGeneratedTotal)} trang bị
             </span>
           </div>
         </div>

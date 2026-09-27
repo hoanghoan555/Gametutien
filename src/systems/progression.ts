@@ -9,6 +9,17 @@ export function calculatePlayerExpToNext(level: number): number {
   return Math.floor(100 * Math.pow(safeLevel, 1.32));
 }
 
+// Section 16 — Cân bằng v1.1: soft cap tốc độ tu luyện để tránh bùng nổ hành động/giây.
+const CULTIVATION_ITEM_SOFT_CAP = 15; // Trần mềm cộng thêm từ trang bị (base 5 → tối đa ~20)
+const CULTIVATION_PERCENT_SOFT_CAP = 100; // Trần mềm % cộng thêm (tối đa ×2)
+const TOWER_EXP_BONUS_SOFT_CAP = 150; // Trần mềm % cống hiến Đỉnh
+const LOOT_RATE_SOFT_CAP = 100; // Trần mềm % tốc độ loot
+
+function applySoftCap(value: number, cap: number): number {
+  if (value <= 0) return 0;
+  return (cap * value) / (value + cap);
+}
+
 export function calculateStatsAndPower(
   level: number,
   equipment: EquipmentSlots
@@ -31,6 +42,7 @@ export function calculateStatsAndPower(
   let hpPercentBonus = 0;
   let defPercentBonus = 0;
   let cultRatePercentBonus = 0;
+  let itemCultivationBonus = 0;
   let equipmentPowerSum = 0;
 
   for (const slotType of EQUIPMENT_SLOTS_LIST) {
@@ -44,7 +56,9 @@ export function calculateStatsAndPower(
     if (item.baseStats.def) baseDef += item.baseStats.def;
     if (item.baseStats.critRate) critRate += item.baseStats.critRate;
     if (item.baseStats.attackSpeed) attackSpeed += item.baseStats.attackSpeed * 0.05;
-    if (item.baseStats.cultivationRate) cultivationRate += item.baseStats.cultivationRate;
+    if (item.baseStats.cultivationRate) {
+      itemCultivationBonus += item.baseStats.cultivationRate;
+    }
 
     for (const affix of item.affixes) {
       switch (affix.type) {
@@ -91,8 +105,13 @@ export function calculateStatsAndPower(
   const finalAtk = Math.floor(baseAtk * (1 + atkPercentBonus / 100));
   const finalHp = Math.floor(baseHp * (1 + hpPercentBonus / 100));
   const finalDef = Math.floor(baseDef * (1 + defPercentBonus / 100));
+  const cappedItemBonus = applySoftCap(itemCultivationBonus, CULTIVATION_ITEM_SOFT_CAP);
+  const cappedPercentBonus = applySoftCap(
+    cultRatePercentBonus,
+    CULTIVATION_PERCENT_SOFT_CAP
+  );
   const finalCultivationRate =
-    Math.round(cultivationRate * (1 + cultRatePercentBonus / 100) * 10) / 10;
+    Math.round((cultivationRate + cappedItemBonus) * (1 + cappedPercentBonus / 100) * 10) / 10;
 
   const stats: PlayerStats = {
     atk: finalAtk,
@@ -102,8 +121,9 @@ export function calculateStatsAndPower(
     critDamage: Math.round(critDamage * 10) / 10,
     attackSpeed: Math.round(attackSpeed * 100) / 100,
     cultivationRate: finalCultivationRate,
-    towerExpBonus: Math.round(towerExpBonus * 10) / 10,
-    lootRate: Math.round(lootRate * 10) / 10,
+    towerExpBonus:
+      Math.round(applySoftCap(towerExpBonus, TOWER_EXP_BONUS_SOFT_CAP) * 10) / 10,
+    lootRate: Math.round(applySoftCap(lootRate, LOOT_RATE_SOFT_CAP) * 10) / 10,
   };
 
   // Section 17: Power formula

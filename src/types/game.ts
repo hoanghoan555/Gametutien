@@ -27,7 +27,10 @@ export interface OfflineRewardSummary {
   playerExpGained: number;
   towerExpGained: number;
   towerLevelsGained: number;
+  /** Danh sách rút gọn (tối đa 40 vật phẩm tiêu biểu) để hiển thị UI. */
   itemsGenerated: Item[];
+  /** Tổng số vật phẩm thực nhận trong toàn bộ thời gian offline. */
+  itemsGeneratedTotal: number;
   autoEquippedCount: number;
   dismantledCount: number;
 }

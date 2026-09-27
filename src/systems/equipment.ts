@@ -29,11 +29,6 @@ export function createEmptyMaterials(): DismantleMaterials {
   };
 }
 
-export function shouldAutoEquip(newItem: Item, currentEquipped: Item | null): boolean {
-  if (!currentEquipped) return true;
-  return newItem.power > currentEquipped.power;
-}
-
 export function getDismantleReward(item: Item): DismantleMaterials {
   const base = DISMANTLE_REWARD_TABLE[item.rarity];
   const levelFactor = Math.max(1, Math.floor(1 + item.level * 0.15));

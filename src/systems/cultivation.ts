@@ -8,7 +8,6 @@ import {
   canAutoDismantle,
   getDismantleReward,
   MAX_INVENTORY_SLOTS,
-  shouldAutoEquip,
 } from './equipment';
 import { generateLootItem } from './loot';
 import {
@@ -33,6 +32,15 @@ export interface SingleCultivationResult {
   }>;
 }
 
+// Section 18 — Cân bằng v1.1: đóng góp Đỉnh tăng dưới tuyến tính theo Power (tạo soft wall dài hạn).
+const TOWER_CONTRIBUTION_BASE = 10;
+const TOWER_CONTRIBUTION_POWER_EXPONENT = 0.6;
+const TOWER_CONTRIBUTION_POWER_DIVISOR = 45;
+
+// Section 20 — Cân bằng v1.1: Tu Luyện EXP tăng dưới tuyến tính theo Power (tránh Lv Nhân vật bùng nổ).
+const PLAYER_EXP_POWER_EXPONENT = 0.6;
+const PLAYER_EXP_POWER_DIVISOR = 30;
+
 export function hasSpecialEffect(player: PlayerState, effectId: string): boolean {
   for (const slot of EQUIPMENT_SLOTS_LIST) {
     const item = player.equipment[slot];
@@ -41,6 +49,21 @@ export function hasSpecialEffect(player: PlayerState, effectId: string): boolean
     }
   }
   return false;
+}
+
+/**
+ * Section 12: Auto Equip dựa trên tổng Power thật (sau khi thay trang bị),
+ * không so sánh item.power — hai đại lượng này có trọng số khác nhau.
+ */
+function isPowerUpgrade(player: PlayerState, newItem: Item): boolean {
+  const currentEquipped = player.equipment[newItem.type];
+  if (!currentEquipped) return true;
+
+  const { power } = calculateStatsAndPower(player.level, {
+    ...player.equipment,
+    [newItem.type]: newItem,
+  });
+  return power > player.power;
 }
 
 export function calculateSingleActionGains(
@@ -53,7 +76,12 @@ export function calculateSingleActionGains(
   isBurst: boolean;
 } {
   // Section 18: Contribution formula
-  const baseContribution = 10 + Math.floor(player.power / 450);
+  const baseContribution =
+    TOWER_CONTRIBUTION_BASE +
+    Math.floor(
+      Math.pow(Math.max(0, player.power), TOWER_CONTRIBUTION_POWER_EXPONENT) /
+        TOWER_CONTRIBUTION_POWER_DIVISOR
+    );
   const powerLogMultiplier = 1 + Math.log10(1 + player.power) * 0.12;
   const bonusMultiplier = 1 + player.stats.towerExpBonus / 100;
 
@@ -70,7 +98,13 @@ export function calculateSingleActionGains(
   }
 
   // Player EXP gain
-  let playerExpBase = 6 + Math.floor(player.level * 1.8) + Math.floor(player.power / 900);
+  let playerExpBase =
+    6 +
+    Math.floor(Math.pow(Math.max(1, player.level), 0.75) * 1.8) +
+    Math.floor(
+      Math.pow(Math.max(0, player.power), PLAYER_EXP_POWER_EXPONENT) /
+        PLAYER_EXP_POWER_DIVISOR
+    );
   if (hasSpecialEffect(player, 'thien_dao_linh')) {
     playerExpBase = Math.floor(playerExpBase * 1.12);
   }
@@ -102,8 +136,8 @@ export function processItemAcquisition(
   const currentEquipped = player.equipment[newItem.type];
   const oldPower = player.power;
 
-  // Section 12: Auto Equip
-  if (settings.autoEquip && shouldAutoEquip(newItem, currentEquipped)) {
+  // Section 12: Auto Equip — chỉ trang bị khi tổng Power thực sự cao hơn
+  if (settings.autoEquip && isPowerUpgrade(player, newItem)) {
     const updatedEquipment = {
       ...player.equipment,
       [newItem.type]: newItem,
