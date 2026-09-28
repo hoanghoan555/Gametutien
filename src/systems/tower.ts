@@ -22,7 +22,20 @@ export interface TowerExpResult {
   levelsGained: number;
 }
 
-export function addTowerExp(tower: TowerState, expGain: number): TowerExpResult {
+/**
+ * P5.1 (D5): phần lõi của Tower không phụ thuộc loot ownership — dùng chung cho
+ * `TowerState` (solo) và `MpTowerState` (multiplayer, không có lootProgress/lootThreshold).
+ */
+export interface TowerCoreState {
+  level: number;
+  currentExp: number;
+  expToNextLevel: number;
+}
+
+export function addTowerExpToCore<T extends TowerCoreState>(
+  tower: T,
+  expGain: number
+): { tower: T; levelsGained: number } {
   let level = tower.level;
   let currentExp = tower.currentExp + Math.max(0, Math.floor(expGain));
   let expToNextLevel = tower.expToNextLevel;
@@ -41,9 +54,13 @@ export function addTowerExp(tower: TowerState, expGain: number): TowerExpResult 
       level,
       currentExp,
       expToNextLevel,
-    },
+    } as T,
     levelsGained,
   };
+}
+
+export function addTowerExp(tower: TowerState, expGain: number): TowerExpResult {
+  return addTowerExpToCore(tower, expGain);
 }
 
 export function setTowerLevelState(tower: TowerState, targetLevel: number): TowerState {

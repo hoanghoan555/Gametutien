@@ -9,11 +9,15 @@
     "preview": "vite preview",
     "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
     "lint": "tsc --noEmit",
-    "sim": "tsx scripts/simulate.ts"
+    "sim": "tsx scripts/simulate.ts",
+    "mp:test": "tsx --test \"tests/*.test.ts\"",
+    "gen:golden": "tsx scripts/gen-loot-golden.ts",
+    "server:dev": "tsx server/src/main.ts"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.3",
     "@vitejs/plugin-react": "^6.1.1",
+    "fastify": "^5.12.5",
     "lucide-react": "^0.546.0",
     "motion": "^12.23.24",
     "react": "^19.0.1",

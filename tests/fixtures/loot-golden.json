@@ -1,0 +1,2558 @@
+{
+  "seedCultivate": 20260928,
+  "seedRolls": 31415926,
+  "cultivate": {
+    "towerExpGain": 6180,
+    "playerExpGain": 5542,
+    "towerLevelsGained": 2,
+    "playerLevelsGained": 7,
+    "isBurst": false,
+    "tower": {
+      "level": 3,
+      "currentExp": 2631,
+      "expToNextLevel": 4406,
+      "lootProgress": 90,
+      "lootThreshold": 100,
+      "totalCultivations": 400
+    },
+    "player": {
+      "level": 8,
+      "cultivationExp": 940,
+      "cultivationExpToNext": 1556,
+      "power": 1369,
+      "stats": {
+        "atk": 136,
+        "hp": 1102,
+        "def": 78,
+        "critRate": 7.3,
+        "critDamage": 150,
+        "attackSpeed": 1,
+        "cultivationRate": 5,
+        "towerExpBonus": 10.5,
+        "lootRate": 0
+      },
+      "contribution": 6180,
+      "materials": {
+        "basicMaterial": 4,
+        "linhStone": 0,
+        "advancedMaterial": 0,
+        "rareMaterial": 0
+      },
+      "equipment": {
+        "weapon": null,
+        "helmet": {
+          "name": "Linh Phong Mão",
+          "type": "helmet",
+          "level": 2,
+          "rarity": "green",
+          "power": 71,
+          "baseStats": {
+            "hp": 262,
+            "def": 14
+          },
+          "affixes": [
+            {
+              "type": "TOWER_EXP",
+              "label": "Cống Hiến Đỉnh EXP",
+              "value": 11.3,
+              "isPercent": true
+            }
+          ],
+          "specialEffect": null
+        },
+        "armor": null,
+        "boots": null,
+        "ring": {
+          "name": "Bạch Thạch Giới Chỉ",
+          "type": "ring",
+          "level": 3,
+          "rarity": "white",
+          "power": 116,
+          "baseStats": {
+            "atk": 25,
+            "critRate": 2.3
+          },
+          "affixes": [],
+          "specialEffect": null
+        },
+        "artifact": null
+      },
+      "inventory": []
+    },
+    "generated": [
+      {
+        "item": {
+          "name": "Sơ Nguyên Ngọc Giới",
+          "type": "ring",
+          "level": 1,
+          "rarity": "white",
+          "power": 85,
+          "baseStats": {
+            "atk": 5,
+            "critRate": 2.2
+          },
+          "affixes": [],
+          "specialEffect": null
+        },
+        "autoEquipped": true,
+        "dismantled": false,
+        "powerDelta": 310
+      },
+      {
+        "item": {
+          "name": "Linh Phong Mão",
+          "type": "helmet",
+          "level": 2,
+          "rarity": "green",
+          "power": 71,
+          "baseStats": {
+            "hp": 262,
+            "def": 14
+          },
+          "affixes": [
+            {
+              "type": "TOWER_EXP",
+              "label": "Cống Hiến Đỉnh EXP",
+              "value": 11.3,
+              "isPercent": true
+            }
+          ],
+          "specialEffect": null
+        },
+        "autoEquipped": true,
+        "dismantled": false,
+        "powerDelta": 125
+      },
+      {
+        "item": {
+          "name": "Phàm Thiết Ngọc Giới",
+          "type": "ring",
+          "level": 2,
+          "rarity": "white",
+          "power": 96,
+          "baseStats": {
+            "atk": 13,
+            "critRate": 2.2
+          },
+          "affixes": [],
+          "specialEffect": null
+        },
+        "autoEquipped": true,
+        "dismantled": false,
+        "powerDelta": 19
+      },
+      {
+        "item": {
+          "name": "Bạch Thạch Giới Chỉ",
+          "type": "ring",
+          "level": 3,
+          "rarity": "white",
+          "power": 116,
+          "baseStats": {
+            "atk": 25,
+            "critRate": 2.3
+          },
+          "affixes": [],
+          "specialEffect": null
+        },
+        "autoEquipped": true,
+        "dismantled": false,
+        "powerDelta": 42
+      }
+    ]
+  },
+  "rolls": {
+    "natural": [
+      {
+        "name": "Phàm Thiết Phi Kiếm",
+        "type": "weapon",
+        "level": 50,
+        "rarity": "white",
+        "power": 3314,
+        "baseStats": {
+          "atk": 2679
+        },
+        "affixes": [],
+        "specialEffect": null
+      },
+      {
+        "name": "Tử Điện Quan",
+        "type": "helmet",
+        "level": 50,
+        "rarity": "blue",
+        "power": 7328,
+        "baseStats": {
+          "hp": 25887,
+          "def": 1330
+        },
+        "affixes": [
+          {
+            "type": "HP_PERCENT",
+            "label": "Sinh Lực",
+            "value": 13.5,
+            "isPercent": true
+          },
+          {
+            "type": "DEF_PERCENT",
+            "label": "Phòng Thủ",
+            "value": 12,
+            "isPercent": true
+          }
+        ],
+        "specialEffect": null
+      },
+      {
+        "name": "Phàm Thiết Thần Chung",
+        "type": "artifact",
+        "level": 50,
+        "rarity": "white",
+        "power": 4429,
+        "baseStats": {
+          "atk": 1261,
+          "hp": 10368,
+          "def": 697,
+          "cultivationRate": 2.8
+        },
+        "affixes": [],
+        "specialEffect": null
+      },
+      {
+        "name": "Phàm Thiết Vân Hài",
+        "type": "boots",
+        "level": 50,
+        "rarity": "white",
+        "power": 2492,
+        "baseStats": {
+          "def": 1066,
+          "attackSpeed": 6.5
+        },
+        "affixes": [],
+        "specialEffect": null
+      },
+      {
+        "name": "Thúy Trúc Vân Hài",
+        "type": "boots",
+        "level": 50,
+        "rarity": "green",
+        "power": 3435,
+        "baseStats": {
+          "def": 1336,
+          "attackSpeed": 8.3
+        },
+        "affixes": [
+          {
+            "type": "CULTIVATION_RATE",
+            "label": "Tốc Độ Tu Luyện",
+            "value": 12,
+            "isPercent": true
+          }
+        ],
+        "specialEffect": null
+      },
+      {
+        "name": "Tử Hà Vân Hài",
+        "type": "boots",
+        "level": 50,
+        "rarity": "purple",
+        "power": 6376,
+        "baseStats": {
+          "def": 2214,
+          "attackSpeed": 13.6
+        },
+        "affixes": [
+          {
+            "type": "LOOT_RATE",
+            "label": "Cơ Duyên Bảo Vật",
+            "value": 10.4,
+            "isPercent": true
+          },
+          {
+            "type": "CULTIVATION_RATE",
+            "label": "Tốc Độ Tu Luyện",
+            "value": 12.5,
+            "isPercent": true
+          },
+          {
+            "type": "CRIT_RATE",
+            "label": "Bạo Kích",
+            "value": 5.6,
+            "isPercent": true
+          }
+        ],
+        "specialEffect": null
+      },
+      {
+        "name": "Phàm Thiết Linh Châu",
+        "type": "artifact",
+        "level": 50,
+        "rarity": "white",
+        "power": 4501,
+        "baseStats": {
+          "atk": 1238,
+          "hp": 11253,
+          "def": 687,
+          "cultivationRate": 3
+        },
+        "affixes": [],
+        "specialEffect": null
+      },
+      {
+        "name": "Sơ Nguyên Ngọc Giới",
+        "type": "ring",
+        "level": 50,
+        "rarity": "white",
+        "power": 1749,
+        "baseStats": {
+          "atk": 1100,
+          "critRate": 9.4
+        },
+        "affixes": [],
+        "specialEffect": null
+      },
+      {
+        "name": "Linh Phong Linh Hoàn",
+        "type": "ring",
+        "level": 50,
+        "rarity": "green",
+        "power": 2316,
+        "baseStats": {
+          "atk": 1381,
+          "critRate": 11.6
+        },
+        "affixes": [
+          {
+            "type": "ATK_PERCENT",
+            "label": "Công Kích",
+            "value": 7.3,
+            "isPercent": true
+          }
+        ],
+        "specialEffect": null
+      },
+      {
+        "name": "Thương Lam Kích",
+        "type": "weapon",
+        "level": 50,
+        "rarity": "blue",
+        "power": 6189,
+        "baseStats": {
+          "atk": 4162
+        },
+        "affixes": [
+          {
+            "type": "ATK_PERCENT",
+            "label": "Công Kích",
+            "value": 11.6,
+            "isPercent": true
+          },
+          {
+            "type": "HP_PERCENT",
+            "label": "Sinh Lực",
+            "value": 12.9,
+            "isPercent": true
+          }
+        ],
+        "specialEffect": null
+      },
+      {
+        "name": "Vân Hải Đao",
+        "type": "weapon",
+        "level": 50,
+        "rarity": "blue",
+        "power": 5868,
+        "baseStats": {
+          "atk": 4142
+        },
+        "affixes": [
+          {
+            "type": "TOWER_EXP",
+            "label": "Cống Hiến Đỉnh EXP",
+            "value": 9.5,
+            "isPercent": true
+          },
+          {
+            "type": "DEF_PERCENT",
+            "label": "Phòng Thủ",
+            "value": 8.1,
+            "isPercent": true
+          }
+        ],
+        "specialEffect": null
+      },
+      {
+        "name": "Huyền Thiết Đạp Vân Hài",
+        "type": "boots",
+        "level": 50,
+        "rarity": "green",
+        "power": 3323,
+        "baseStats": {
+          "def": 1353,
+          "attackSpeed": 7.7
+        },
+        "affixes": [
+          {
+            "type": "DEF_PERCENT",
+            "label": "Phòng Thủ",
+            "value": 7.2,
+            "isPercent": true
+          }
+        ],
+        "specialEffect": null
+      },
+      {
+        "name": "Thanh Vân Phi Ngoa",
+        "type": "boots",
+        "level": 50,
+        "rarity": "white",
+        "power": 2416,
+        "baseStats": {
+          "def": 1028,
+          "attackSpeed": 6.5
+        },
+        "affixes": [],
+        "specialEffect": null
+      },
+      {
+        "name": "Bạch Thạch Thần Chung",
+        "type": "artifact",
+        "level": 50,
+        "rarity": "white",
+        "power": 4531,
+        "baseStats": {
+          "atk": 1310,
+          "hp": 11302,
+          "def": 658,
+          "cultivationRate": 2.9
+        },
+        "affixes": [],
+        "specialEffect": null
+      },
+      {
+        "name": "Linh Phong Đạo Bào",
+        "type": "armor",
+        "level": 50,
+        "rarity": "green",
+        "power": 7205,
+        "baseStats": {
+          "hp": 27230,
+          "def": 1613
+        },
+        "affixes": [
+          {
+            "type": "ATTACK_SPEED",
+            "label": "Tốc Độ Xuất Chiêu",
+            "value": 8,
+            "isPercent": true
+          }
+        ],
+        "specialEffect": null
+      },
+      {
+        "name": "Mộc Linh Đạo Quan",
+        "type": "helmet",
+        "level": 50,
+        "rarity": "white",
+        "power": 3931,
+        "baseStats": {
+          "hp": 16830,
+          "def": 864
+        },
+        "affixes": [],
+        "specialEffect": null
+      },
+      {
+        "name": "Vân Hải Kích",
+        "type": "weapon",
+        "level": 50,
+        "rarity": "blue",
+        "power": 6381,
+        "baseStats": {
+          "atk": 4071
+        },
+        "affixes": [
+          {
+            "type": "DEF_PERCENT",
+            "label": "Phòng Thủ",
+            "value": 10.2,
+            "isPercent": true
+          },
+          {
+            "type": "CRIT_DAMAGE",
+            "label": "Sát Thương Bạo",
+            "value": 22.1,
+            "isPercent": true
+          }
+        ],
+        "specialEffect": null
+      },
+      {
+        "name": "Linh Phong Chiến Giáp",
+        "type": "armor",
+        "level": 50,
+        "rarity": "green",
+        "power": 7395,
+        "baseStats": {
+          "hp": 28102,
+          "def": 1563
+        },
+        "affixes": [
+          {
+            "type": "CULTIVATION_RATE",
+            "label": "Tốc Độ Tu Luyện",
+            "value": 11.2,
+            "isPercent": true
+          }
+        ],
+        "specialEffect": null
+      },
+      {
+        "name": "Mộc Linh Linh Châu",
+        "type": "artifact",
+        "level": 50,
+        "rarity": "white",
+        "power": 4443,
+        "baseStats": {
+          "atk": 1328,
+          "hp": 10493,
+          "def": 654,
+          "cultivationRate": 2.9
+        },
+        "affixes": [],
+        "specialEffect": null
+      },
+      {
+        "name": "Phàm Thiết Kích",
+        "type": "weapon",
+        "level": 50,
+        "rarity": "white",
+        "power": 3550,
+        "baseStats": {
+          "atk": 2875
+        },
+        "affixes": [],
+        "specialEffect": null
+      },
+      {
+        "name": "Thúy Trúc Phi Ngoa",
+        "type": "boots",
+        "level": 50,
+        "rarity": "green",
+        "power": 3281,
+        "baseStats": {
+          "def": 1319,
+          "attackSpeed": 8
+        },
+        "affixes": [
+          {
+            "type": "DEF_PERCENT",
+            "label": "Phòng Thủ",
+            "value": 7.9,
+            "isPercent": true
+          }
+        ],
+        "specialEffect": null
+      },
+      {
+        "name": "Phàm Thiết Tiên Ấn",
+        "type": "artifact",
+        "level": 50,
+        "rarity": "white",
+        "power": 4544,
+        "baseStats": {
+          "atk": 1273,
+          "hp": 11232,
+          "def": 689,
+          "cultivationRate": 3
+        },
+        "affixes": [],
+        "specialEffect": null
+      },
+      {
+        "name": "Thanh Vân Hộ Giáp",
+        "type": "armor",
+        "level": 50,
+        "rarity": "white",
+        "power": 5302,
+        "baseStats": {
+          "hp": 21878,
+          "def": 1234
+        },
+        "affixes": [],
+        "specialEffect": null
+      },
+      {
+        "name": "Thanh Vân Linh Hoàn",
+        "type": "ring",
+        "level": 50,
+        "rarity": "white",
+        "power": 1668,
+        "baseStats": {
+          "atk": 1033,
+          "critRate": 9.4
+        },
+        "affixes": [],
+        "specialEffect": null
+      },
+      {
+        "name": "Tử Điện Tiên Y",
+        "type": "armor",
+        "level": 50,
+        "rarity": "blue",
+        "power": 10645,
+        "baseStats": {
+          "hp": 33049,
+          "def": 2039
+        },
+        "affixes": [
+          {
+            "type": "CULTIVATION_RATE",
+            "label": "Tốc Độ Tu Luyện",
+            "value": 12,
+            "isPercent": true
+          },
+          {
+            "type": "CRIT_DAMAGE",
+            "label": "Sát Thương Bạo",
+            "value": 20.7,
+            "isPercent": true
+          }
+        ],
+        "specialEffect": null
+      },
+      {
+        "name": "Thúy Trúc Đao",
+        "type": "weapon",
+        "level": 50,
+        "rarity": "green",
+        "power": 4447,
+        "baseStats": {
+          "atk": 3349
+        },
+        "affixes": [
+          {
+            "type": "CULTIVATION_RATE",
+            "label": "Tốc Độ Tu Luyện",
+            "value": 8.9,
+            "isPercent": true
+          }
+        ],
+        "specialEffect": null
+      },
+      {
+        "name": "Bạch Thạch Mão",
+        "type": "helmet",
+        "level": 50,
+        "rarity": "white",
+        "power": 4065,
+        "baseStats": {
+          "hp": 17100,
+          "def": 914
+        },
+        "affixes": [],
+        "specialEffect": null
+      },
+      {
+        "name": "Phàm Thiết Vân Hài",
+        "type": "boots",
+        "level": 50,
+        "rarity": "white",
+        "power": 2524,
+        "baseStats": {
+          "def": 1088,
+          "attackSpeed": 6.2
+        },
+        "affixes": [],
+        "specialEffect": null
+      },
+      {
+        "name": "Thanh Ngọc Đao",
+        "type": "weapon",
+        "level": 50,
+        "rarity": "green",
+        "power": 4667,
+        "baseStats": {
+          "atk": 3584
+        },
+        "affixes": [
+          {
+            "type": "CRIT_RATE",
+            "label": "Bạo Kích",
+            "value": 6.6,
+            "isPercent": true
+          }
+        ],
+        "specialEffect": null
+      },
+      {
+        "name": "Bạch Thạch Tiên Y",
+        "type": "armor",
+        "level": 50,
+        "rarity": "white",
+        "power": 5213,
+        "baseStats": {
+          "hp": 21370,
+          "def": 1221
+        },
+        "affixes": [],
+        "specialEffect": null
+      },
+      {
+        "name": "Linh Phong Cổ Kiếm",
+        "type": "weapon",
+        "level": 50,
+        "rarity": "green",
+        "power": 4541,
+        "baseStats": {
+          "atk": 3446
+        },
+        "affixes": [
+          {
+            "type": "CULTIVATION_RATE",
+            "label": "Tốc Độ Tu Luyện",
+            "value": 8,
+            "isPercent": true
+          }
+        ],
+        "specialEffect": null
+      },
+      {
+        "name": "Sơ Nguyên Huyền Kính",
+        "type": "artifact",
+        "level": 50,
+        "rarity": "white",
+        "power": 4500,
+        "baseStats": {
+          "atk": 1246,
+          "hp": 11177,
+          "def": 691,
+          "cultivationRate": 2.8
+        },
+        "affixes": [],
+        "specialEffect": null
+      },
+      {
+        "name": "Bích Thủy Phi Kiếm",
+        "type": "weapon",
+        "level": 50,
+        "rarity": "green",
+        "power": 4403,
+        "baseStats": {
+          "atk": 3333
+        },
+        "affixes": [
+          {
+            "type": "ATK_PERCENT",
+            "label": "Công Kích",
+            "value": 8.2,
+            "isPercent": true
+          }
+        ],
+        "specialEffect": null
+      },
+      {
+        "name": "Huyền Thiết Mão",
+        "type": "helmet",
+        "level": 50,
+        "rarity": "green",
+        "power": 5514,
+        "baseStats": {
+          "hp": 20820,
+          "def": 1146
+        },
+        "affixes": [
+          {
+            "type": "LOOT_RATE",
+            "label": "Cơ Duyên Bảo Vật",
+            "value": 11.9,
+            "isPercent": true
+          }
+        ],
+        "specialEffect": null
+      },
+      {
+        "name": "Mộc Linh Cổ Đỉnh",
+        "type": "artifact",
+        "level": 50,
+        "rarity": "white",
+        "power": 4570,
+        "baseStats": {
+          "atk": 1271,
+          "hp": 11017,
+          "def": 721,
+          "cultivationRate": 2.8
+        },
+        "affixes": [],
+        "specialEffect": null
+      },
+      {
+        "name": "Thanh Vân Hộ Giáp",
+        "type": "armor",
+        "level": 50,
+        "rarity": "white",
+        "power": 5340,
+        "baseStats": {
+          "hp": 20565,
+          "def": 1335
+        },
+        "affixes": [],
+        "specialEffect": null
+      },
+      {
+        "name": "Thanh Vân Ngọc Mão",
+        "type": "helmet",
+        "level": 50,
+        "rarity": "white",
+        "power": 3972,
+        "baseStats": {
+          "hp": 17317,
+          "def": 854
+        },
+        "affixes": [],
+        "specialEffect": null
+      },
+      {
+        "name": "Sơ Nguyên Đao",
+        "type": "weapon",
+        "level": 50,
+        "rarity": "white",
+        "power": 3504,
+        "baseStats": {
+          "atk": 2837
+        },
+        "affixes": [],
+        "specialEffect": null
+      },
+      {
+        "name": "Mộc Linh Quan",
+        "type": "helmet",
+        "level": 50,
+        "rarity": "white",
+        "power": 3956,
+        "baseStats": {
+          "hp": 16453,
+          "def": 900
+        },
+        "affixes": [],
+        "specialEffect": null
+      },
+      {
+        "name": "Huyền Thiết Thần Chung",
+        "type": "artifact",
+        "level": 50,
+        "rarity": "green",
+        "power": 6320,
+        "baseStats": {
+          "atk": 1520,
+          "hp": 14056,
+          "def": 833,
+          "cultivationRate": 3.6
+        },
+        "affixes": [
+          {
+            "type": "CRIT_DAMAGE",
+            "label": "Sát Thương Bạo",
+            "value": 17.1,
+            "isPercent": true
+          }
+        ],
+        "specialEffect": null
+      },
+      {
+        "name": "Tử Điện Thương",
+        "type": "weapon",
+        "level": 50,
+        "rarity": "blue",
+        "power": 6310,
+        "baseStats": {
+          "atk": 4138
+        },
+        "affixes": [
+          {
+            "type": "CRIT_DAMAGE",
+            "label": "Sát Thương Bạo",
+            "value": 19.4,
+            "isPercent": true
+          },
+          {
+            "type": "DEF_PERCENT",
+            "label": "Phòng Thủ",
+            "value": 8.8,
+            "isPercent": true
+          }
+        ],
+        "specialEffect": null
+      },
+      {
+        "name": "Xích Viêm Kim Quan",
+        "type": "helmet",
+        "level": 50,
+        "rarity": "orange",
+        "power": 15626,
+        "baseStats": {
+          "hp": 46126,
+          "def": 2349
+        },
+        "affixes": [
+          {
+            "type": "CULTIVATION_RATE",
+            "label": "Tốc Độ Tu Luyện",
+            "value": 13,
+            "isPercent": true
+          },
+          {
+            "type": "CRIT_RATE",
+            "label": "Bạo Kích",
+            "value": 5.5,
+            "isPercent": true
+          },
+          {
+            "type": "DEF_PERCENT",
+            "label": "Phòng Thủ",
+            "value": 13.5,
+            "isPercent": true
+          },
+          {
+            "type": "ATTACK_SPEED",
+            "label": "Tốc Độ Xuất Chiêu",
+            "value": 10,
+            "isPercent": true
+          }
+        ],
+        "specialEffect": {
+          "id": "thien_kiem",
+          "name": "Thiên Kiếm Cộng Minh",
+          "description": "+10% Đỉnh EXP nhận được khi Khai Đỉnh.",
+          "rarity": "orange"
+        }
+      },
+      {
+        "name": "Bạch Thạch Phi Kiếm",
+        "type": "weapon",
+        "level": 50,
+        "rarity": "white",
+        "power": 3349,
+        "baseStats": {
+          "atk": 2708
+        },
+        "affixes": [],
+        "specialEffect": null
+      },
+      {
+        "name": "Thanh Vân Kiếm",
+        "type": "weapon",
+        "level": 50,
+        "rarity": "white",
+        "power": 3563,
+        "baseStats": {
+          "atk": 2886
+        },
+        "affixes": [],
+        "specialEffect": null
+      },
+      {
+        "name": "Thanh Vân Hộ Giáp",
+        "type": "armor",
+        "level": 50,
+        "rarity": "white",
+        "power": 5219,
+        "baseStats": {
+          "hp": 20782,
+          "def": 1261
+        },
+        "affixes": [],
+        "specialEffect": null
+      },
+      {
+        "name": "Thanh Vân Kích",
+        "type": "weapon",
+        "level": 50,
+        "rarity": "white",
+        "power": 3352,
+        "baseStats": {
+          "atk": 2710
+        },
+        "affixes": [],
+        "specialEffect": null
+      },
+      {
+        "name": "Phàm Thiết Bộ Lý",
+        "type": "boots",
+        "level": 50,
+        "rarity": "white",
+        "power": 2536,
+        "baseStats": {
+          "def": 1084,
+          "attackSpeed": 6.7
+        },
+        "affixes": [],
+        "specialEffect": null
+      },
+      {
+        "name": "Linh Phong Huyền Y",
+        "type": "armor",
+        "level": 50,
+        "rarity": "green",
+        "power": 7088,
+        "baseStats": {
+          "hp": 27578,
+          "def": 1600
+        },
+        "affixes": [
+          {
+            "type": "CRIT_RATE",
+            "label": "Bạo Kích",
+            "value": 5.6,
+            "isPercent": true
+          }
+        ],
+        "specialEffect": null
+      },
+      {
+        "name": "Phàm Thiết Vân Hài",
+        "type": "boots",
+        "level": 50,
+        "rarity": "white",
+        "power": 2608,
+        "baseStats": {
+          "def": 1118,
+          "attackSpeed": 6.8
+        },
+        "affixes": [],
+        "specialEffect": null
+      },
+      {
+        "name": "Sơ Nguyên Ngọc Mão",
+        "type": "helmet",
+        "level": 50,
+        "rarity": "white",
+        "power": 3897,
+        "baseStats": {
+          "hp": 16584,
+          "def": 862
+        },
+        "affixes": [],
+        "specialEffect": null
+      },
+      {
+        "name": "Huyền Thiết Đạo Bào",
+        "type": "armor",
+        "level": 50,
+        "rarity": "green",
+        "power": 7045,
+        "baseStats": {
+          "hp": 26575,
+          "def": 1574
+        },
+        "affixes": [
+          {
+            "type": "ATK_PERCENT",
+            "label": "Công Kích",
+            "value": 8.2,
+            "isPercent": true
+          }
+        ],
+        "specialEffect": null
+      },
+      {
+        "name": "Thanh Ngọc Giới Chỉ",
+        "type": "ring",
+        "level": 50,
+        "rarity": "green",
+        "power": 2591,
+        "baseStats": {
+          "atk": 1409,
+          "critRate": 12.1
+        },
+        "affixes": [
+          {
+            "type": "CRIT_DAMAGE",
+            "label": "Sát Thương Bạo",
+            "value": 19.6,
+            "isPercent": true
+          }
+        ],
+        "specialEffect": null
+      },
+      {
+        "name": "Tinh Hà Kiếm",
+        "type": "weapon",
+        "level": 50,
+        "rarity": "blue",
+        "power": 6157,
+        "baseStats": {
+          "atk": 4470
+        },
+        "affixes": [
+          {
+            "type": "LOOT_RATE",
+            "label": "Cơ Duyên Bảo Vật",
+            "value": 7.2,
+            "isPercent": true
+          },
+          {
+            "type": "CRIT_RATE",
+            "label": "Bạo Kích",
+            "value": 6.8,
+            "isPercent": true
+          }
+        ],
+        "specialEffect": null
+      },
+      {
+        "name": "Tinh Hà Ngọc Giới",
+        "type": "ring",
+        "level": 50,
+        "rarity": "blue",
+        "power": 3144,
+        "baseStats": {
+          "atk": 1694,
+          "critRate": 15.2
+        },
+        "affixes": [
+          {
+            "type": "HP_PERCENT",
+            "label": "Sinh Lực",
+            "value": 8.4,
+            "isPercent": true
+          },
+          {
+            "type": "CULTIVATION_RATE",
+            "label": "Tốc Độ Tu Luyện",
+            "value": 11.1,
+            "isPercent": true
+          }
+        ],
+        "specialEffect": null
+      },
+      {
+        "name": "Bạch Thạch Huyền Giới",
+        "type": "ring",
+        "level": 50,
+        "rarity": "white",
+        "power": 1770,
+        "baseStats": {
+          "atk": 1118,
+          "critRate": 9.4
+        },
+        "affixes": [],
+        "specialEffect": null
+      },
+      {
+        "name": "Mộc Linh Phi Ngoa",
+        "type": "boots",
+        "level": 50,
+        "rarity": "white",
+        "power": 2458,
+        "baseStats": {
+          "def": 1051,
+          "attackSpeed": 6.4
+        },
+        "affixes": [],
+        "specialEffect": null
+      },
+      {
+        "name": "Mộc Linh Đạo Quan",
+        "type": "helmet",
+        "level": 50,
+        "rarity": "white",
+        "power": 4003,
+        "baseStats": {
+          "hp": 16830,
+          "def": 900
+        },
+        "affixes": [],
+        "specialEffect": null
+      },
+      {
+        "name": "Mộc Linh Hộ Giáp",
+        "type": "armor",
+        "level": 50,
+        "rarity": "white",
+        "power": 5573,
+        "baseStats": {
+          "hp": 22444,
+          "def": 1334
+        },
+        "affixes": [],
+        "specialEffect": null
+      },
+      {
+        "name": "Hàn Băng Huyền Kính",
+        "type": "artifact",
+        "level": 50,
+        "rarity": "blue",
+        "power": 7827,
+        "baseStats": {
+          "atk": 1898,
+          "hp": 16694,
+          "def": 1063,
+          "cultivationRate": 4.3
+        },
+        "affixes": [
+          {
+            "type": "ATTACK_SPEED",
+            "label": "Tốc Độ Xuất Chiêu",
+            "value": 8,
+            "isPercent": true
+          },
+          {
+            "type": "TOWER_EXP",
+            "label": "Cống Hiến Đỉnh EXP",
+            "value": 9.4,
+            "isPercent": true
+          }
+        ],
+        "specialEffect": null
+      },
+      {
+        "name": "Thúy Trúc Ngọc Mão",
+        "type": "helmet",
+        "level": 50,
+        "rarity": "green",
+        "power": 5256,
+        "baseStats": {
+          "hp": 20440,
+          "def": 1056
+        },
+        "affixes": [
+          {
+            "type": "DEF_PERCENT",
+            "label": "Phòng Thủ",
+            "value": 11.7,
+            "isPercent": true
+          }
+        ],
+        "specialEffect": null
+      }
+    ],
+    "forcedType": [
+      {
+        "name": "Phàm Thiết Kích",
+        "type": "weapon",
+        "level": 80,
+        "rarity": "white",
+        "power": 6098,
+        "baseStats": {
+          "atk": 4949
+        },
+        "affixes": [],
+        "specialEffect": null
+      },
+      {
+        "name": "Tử Điện Thương",
+        "type": "weapon",
+        "level": 80,
+        "rarity": "blue",
+        "power": 11937,
+        "baseStats": {
+          "atk": 8017
+        },
+        "affixes": [
+          {
+            "type": "TOWER_EXP",
+            "label": "Cống Hiến Đỉnh EXP",
+            "value": 15,
+            "isPercent": true
+          },
+          {
+            "type": "ATTACK_SPEED",
+            "label": "Tốc Độ Xuất Chiêu",
+            "value": 10.3,
+            "isPercent": true
+          }
+        ],
+        "specialEffect": null
+      },
+      {
+        "name": "Bạch Thạch Cổ Kiếm",
+        "type": "weapon",
+        "level": 80,
+        "rarity": "white",
+        "power": 6566,
+        "baseStats": {
+          "atk": 5339
+        },
+        "affixes": [],
+        "specialEffect": null
+      },
+      {
+        "name": "Bạch Thạch Thương",
+        "type": "weapon",
+        "level": 80,
+        "rarity": "white",
+        "power": 6539,
+        "baseStats": {
+          "atk": 5316
+        },
+        "affixes": [],
+        "specialEffect": null
+      },
+      {
+        "name": "Thanh Vân Mão",
+        "type": "helmet",
+        "level": 80,
+        "rarity": "white",
+        "power": 7395,
+        "baseStats": {
+          "hp": 30303,
+          "def": 1724
+        },
+        "affixes": [],
+        "specialEffect": null
+      },
+      {
+        "name": "Thanh Vân Mão",
+        "type": "helmet",
+        "level": 80,
+        "rarity": "white",
+        "power": 7125,
+        "baseStats": {
+          "hp": 30237,
+          "def": 1593
+        },
+        "affixes": [],
+        "specialEffect": null
+      },
+      {
+        "name": "Sơ Nguyên Kim Quan",
+        "type": "helmet",
+        "level": 80,
+        "rarity": "white",
+        "power": 7434,
+        "baseStats": {
+          "hp": 32688,
+          "def": 1594
+        },
+        "affixes": [],
+        "specialEffect": null
+      },
+      {
+        "name": "Mộc Linh Đạo Quan",
+        "type": "helmet",
+        "level": 80,
+        "rarity": "white",
+        "power": 7397,
+        "baseStats": {
+          "hp": 31919,
+          "def": 1624
+        },
+        "affixes": [],
+        "specialEffect": null
+      },
+      {
+        "name": "Bạch Thạch Tiên Y",
+        "type": "armor",
+        "level": 80,
+        "rarity": "white",
+        "power": 9971,
+        "baseStats": {
+          "hp": 38924,
+          "def": 2473
+        },
+        "affixes": [],
+        "specialEffect": null
+      },
+      {
+        "name": "Thanh Vân Huyền Y",
+        "type": "armor",
+        "level": 80,
+        "rarity": "white",
+        "power": 9658,
+        "baseStats": {
+          "hp": 38785,
+          "def": 2325
+        },
+        "affixes": [],
+        "specialEffect": null
+      },
+      {
+        "name": "Linh Phong Tiên Y",
+        "type": "armor",
+        "level": 80,
+        "rarity": "green",
+        "power": 13728,
+        "baseStats": {
+          "hp": 50072,
+          "def": 3018
+        },
+        "affixes": [
+          {
+            "type": "LOOT_RATE",
+            "label": "Cơ Duyên Bảo Vật",
+            "value": 11.8,
+            "isPercent": true
+          }
+        ],
+        "specialEffect": null
+      },
+      {
+        "name": "Vân Hải Tiên Y",
+        "type": "armor",
+        "level": 80,
+        "rarity": "blue",
+        "power": 17656,
+        "baseStats": {
+          "hp": 62535,
+          "def": 3823
+        },
+        "affixes": [
+          {
+            "type": "CULTIVATION_RATE",
+            "label": "Tốc Độ Tu Luyện",
+            "value": 8.7,
+            "isPercent": true
+          },
+          {
+            "type": "CRIT_RATE",
+            "label": "Bạo Kích",
+            "value": 6.1,
+            "isPercent": true
+          }
+        ],
+        "specialEffect": null
+      },
+      {
+        "name": "Thanh Vân Vân Hài",
+        "type": "boots",
+        "level": 80,
+        "rarity": "white",
+        "power": 4722,
+        "baseStats": {
+          "def": 2099,
+          "attackSpeed": 9.1
+        },
+        "affixes": [],
+        "specialEffect": null
+      },
+      {
+        "name": "Thúy Trúc Phi Ngoa",
+        "type": "boots",
+        "level": 80,
+        "rarity": "green",
+        "power": 5871,
+        "baseStats": {
+          "def": 2449,
+          "attackSpeed": 11.6
+        },
+        "affixes": [
+          {
+            "type": "ATTACK_SPEED",
+            "label": "Tốc Độ Xuất Chiêu",
+            "value": 6.8,
+            "isPercent": true
+          }
+        ],
+        "specialEffect": null
+      },
+      {
+        "name": "Thanh Ngọc Phi Ngoa",
+        "type": "boots",
+        "level": 80,
+        "rarity": "green",
+        "power": 6226,
+        "baseStats": {
+          "def": 2451,
+          "attackSpeed": 12.1
+        },
+        "affixes": [
+          {
+            "type": "TOWER_EXP",
+            "label": "Cống Hiến Đỉnh EXP",
+            "value": 14,
+            "isPercent": true
+          }
+        ],
+        "specialEffect": null
+      },
+      {
+        "name": "Thanh Vân Đạp Vân Hài",
+        "type": "boots",
+        "level": 80,
+        "rarity": "white",
+        "power": 4776,
+        "baseStats": {
+          "def": 2112,
+          "attackSpeed": 9.8
+        },
+        "affixes": [],
+        "specialEffect": null
+      },
+      {
+        "name": "Thanh Ngọc Huyền Giới",
+        "type": "ring",
+        "level": 80,
+        "rarity": "green",
+        "power": 4384,
+        "baseStats": {
+          "atk": 2673,
+          "critRate": 17
+        },
+        "affixes": [
+          {
+            "type": "HP_PERCENT",
+            "label": "Sinh Lực",
+            "value": 11.8,
+            "isPercent": true
+          }
+        ],
+        "specialEffect": null
+      },
+      {
+        "name": "Huyền Thiết Linh Hoàn",
+        "type": "ring",
+        "level": 80,
+        "rarity": "green",
+        "power": 4270,
+        "baseStats": {
+          "atk": 2654,
+          "critRate": 17.2
+        },
+        "affixes": [
+          {
+            "type": "LOOT_RATE",
+            "label": "Cơ Duyên Bảo Vật",
+            "value": 8.8,
+            "isPercent": true
+          }
+        ],
+        "specialEffect": null
+      },
+      {
+        "name": "Thúy Trúc Giới Chỉ",
+        "type": "ring",
+        "level": 80,
+        "rarity": "green",
+        "power": 4228,
+        "baseStats": {
+          "atk": 2603,
+          "critRate": 17.1
+        },
+        "affixes": [
+          {
+            "type": "LOOT_RATE",
+            "label": "Cơ Duyên Bảo Vật",
+            "value": 9.7,
+            "isPercent": true
+          }
+        ],
+        "specialEffect": null
+      },
+      {
+        "name": "Cửu U Huyền Giới",
+        "type": "ring",
+        "level": 80,
+        "rarity": "purple",
+        "power": 8135,
+        "baseStats": {
+          "atk": 3933,
+          "critRate": 29
+        },
+        "affixes": [
+          {
+            "type": "DEF_PERCENT",
+            "label": "Phòng Thủ",
+            "value": 14.1,
+            "isPercent": true
+          },
+          {
+            "type": "ATK_PERCENT",
+            "label": "Công Kích",
+            "value": 14.9,
+            "isPercent": true
+          },
+          {
+            "type": "CULTIVATION_RATE",
+            "label": "Tốc Độ Tu Luyện",
+            "value": 13.7,
+            "isPercent": true
+          }
+        ],
+        "specialEffect": null
+      },
+      {
+        "name": "Mộc Linh Tiên Ấn",
+        "type": "artifact",
+        "level": 80,
+        "rarity": "white",
+        "power": 8506,
+        "baseStats": {
+          "atk": 2414,
+          "hp": 21146,
+          "def": 1302,
+          "cultivationRate": 4.5
+        },
+        "affixes": [],
+        "specialEffect": null
+      },
+      {
+        "name": "Thúy Trúc Huyền Kính",
+        "type": "artifact",
+        "level": 80,
+        "rarity": "green",
+        "power": 11450,
+        "baseStats": {
+          "atk": 3023,
+          "hp": 26705,
+          "def": 1658,
+          "cultivationRate": 5.6
+        },
+        "affixes": [
+          {
+            "type": "ATTACK_SPEED",
+            "label": "Tốc Độ Xuất Chiêu",
+            "value": 8,
+            "isPercent": true
+          }
+        ],
+        "specialEffect": null
+      },
+      {
+        "name": "Bạch Thạch Tiên Ấn",
+        "type": "artifact",
+        "level": 80,
+        "rarity": "white",
+        "power": 8564,
+        "baseStats": {
+          "atk": 2445,
+          "hp": 21312,
+          "def": 1304,
+          "cultivationRate": 4.4
+        },
+        "affixes": [],
+        "specialEffect": null
+      },
+      {
+        "name": "Bạch Thạch Linh Châu",
+        "type": "artifact",
+        "level": 80,
+        "rarity": "white",
+        "power": 8428,
+        "baseStats": {
+          "atk": 2476,
+          "hp": 20581,
+          "def": 1261,
+          "cultivationRate": 4.5
+        },
+        "affixes": [],
+        "specialEffect": null
+      }
+    ],
+    "forcedRarity": [
+      {
+        "name": "Phần Thiên Đạo Quan",
+        "type": "helmet",
+        "level": 80,
+        "rarity": "orange",
+        "power": 30358,
+        "baseStats": {
+          "hp": 86353,
+          "def": 4337
+        },
+        "affixes": [
+          {
+            "type": "CRIT_DAMAGE",
+            "label": "Sát Thương Bạo",
+            "value": 23.1,
+            "isPercent": true
+          },
+          {
+            "type": "LOOT_RATE",
+            "label": "Cơ Duyên Bảo Vật",
+            "value": 13.1,
+            "isPercent": true
+          },
+          {
+            "type": "HP_PERCENT",
+            "label": "Sinh Lực",
+            "value": 11.6,
+            "isPercent": true
+          },
+          {
+            "type": "ATK_PERCENT",
+            "label": "Công Kích",
+            "value": 15.4,
+            "isPercent": true
+          }
+        ],
+        "specialEffect": null
+      },
+      {
+        "name": "Xích Viêm Phi Ngoa",
+        "type": "boots",
+        "level": 80,
+        "rarity": "orange",
+        "power": 19584,
+        "baseStats": {
+          "def": 5677,
+          "attackSpeed": 25.6
+        },
+        "affixes": [
+          {
+            "type": "CULTIVATION_RATE",
+            "label": "Tốc Độ Tu Luyện",
+            "value": 11.2,
+            "isPercent": true
+          },
+          {
+            "type": "HP_PERCENT",
+            "label": "Sinh Lực",
+            "value": 11.8,
+            "isPercent": true
+          },
+          {
+            "type": "TOWER_EXP",
+            "label": "Cống Hiến Đỉnh EXP",
+            "value": 14.8,
+            "isPercent": true
+          },
+          {
+            "type": "ATK_PERCENT",
+            "label": "Công Kích",
+            "value": 12.8,
+            "isPercent": true
+          }
+        ],
+        "specialEffect": {
+          "id": "thien_kiem",
+          "name": "Thiên Kiếm Cộng Minh",
+          "description": "+10% Đỉnh EXP nhận được khi Khai Đỉnh.",
+          "rarity": "orange"
+        }
+      },
+      {
+        "name": "Thiên Đạo Linh Châu",
+        "type": "artifact",
+        "level": 80,
+        "rarity": "orange",
+        "power": 32958,
+        "baseStats": {
+          "atk": 6761,
+          "hp": 54199,
+          "def": 3542,
+          "cultivationRate": 12.1
+        },
+        "affixes": [
+          {
+            "type": "CRIT_RATE",
+            "label": "Bạo Kích",
+            "value": 8.2,
+            "isPercent": true
+          },
+          {
+            "type": "CULTIVATION_RATE",
+            "label": "Tốc Độ Tu Luyện",
+            "value": 16.4,
+            "isPercent": true
+          },
+          {
+            "type": "HP_PERCENT",
+            "label": "Sinh Lực",
+            "value": 11.7,
+            "isPercent": true
+          },
+          {
+            "type": "ATK_PERCENT",
+            "label": "Công Kích",
+            "value": 16,
+            "isPercent": true
+          }
+        ],
+        "specialEffect": null
+      },
+      {
+        "name": "Xích Viêm Linh Hoàn",
+        "type": "ring",
+        "level": 80,
+        "rarity": "orange",
+        "power": 12199,
+        "baseStats": {
+          "atk": 5310,
+          "critRate": 39.6
+        },
+        "affixes": [
+          {
+            "type": "DEF_PERCENT",
+            "label": "Phòng Thủ",
+            "value": 13.4,
+            "isPercent": true
+          },
+          {
+            "type": "CULTIVATION_RATE",
+            "label": "Tốc Độ Tu Luyện",
+            "value": 14.9,
+            "isPercent": true
+          },
+          {
+            "type": "TOWER_EXP",
+            "label": "Cống Hiến Đỉnh EXP",
+            "value": 20,
+            "isPercent": true
+          },
+          {
+            "type": "HP_PERCENT",
+            "label": "Sinh Lực",
+            "value": 12.5,
+            "isPercent": true
+          }
+        ],
+        "specialEffect": null
+      },
+      {
+        "name": "Thái Dương Giới Chỉ",
+        "type": "ring",
+        "level": 80,
+        "rarity": "orange",
+        "power": 13247,
+        "baseStats": {
+          "atk": 5445,
+          "critRate": 36.6
+        },
+        "affixes": [
+          {
+            "type": "ATK_PERCENT",
+            "label": "Công Kích",
+            "value": 15.1,
+            "isPercent": true
+          },
+          {
+            "type": "DEF_PERCENT",
+            "label": "Phòng Thủ",
+            "value": 12.6,
+            "isPercent": true
+          },
+          {
+            "type": "CRIT_DAMAGE",
+            "label": "Sát Thương Bạo",
+            "value": 21.6,
+            "isPercent": true
+          },
+          {
+            "type": "CULTIVATION_RATE",
+            "label": "Tốc Độ Tu Luyện",
+            "value": 11.2,
+            "isPercent": true
+          }
+        ],
+        "specialEffect": {
+          "id": "thien_kiem",
+          "name": "Thiên Kiếm Cộng Minh",
+          "description": "+10% Đỉnh EXP nhận được khi Khai Đỉnh.",
+          "rarity": "orange"
+        }
+      },
+      {
+        "name": "Thái Dương Quan",
+        "type": "helmet",
+        "level": 80,
+        "rarity": "orange",
+        "power": 32931,
+        "baseStats": {
+          "hp": 85165,
+          "def": 4553
+        },
+        "affixes": [
+          {
+            "type": "DEF_PERCENT",
+            "label": "Phòng Thủ",
+            "value": 11.6,
+            "isPercent": true
+          },
+          {
+            "type": "CRIT_DAMAGE",
+            "label": "Sát Thương Bạo",
+            "value": 28.4,
+            "isPercent": true
+          },
+          {
+            "type": "ATTACK_SPEED",
+            "label": "Tốc Độ Xuất Chiêu",
+            "value": 8.6,
+            "isPercent": true
+          },
+          {
+            "type": "TOWER_EXP",
+            "label": "Cống Hiến Đỉnh EXP",
+            "value": 12.8,
+            "isPercent": true
+          }
+        ],
+        "specialEffect": {
+          "id": "thien_kiem",
+          "name": "Thiên Kiếm Cộng Minh",
+          "description": "+10% Đỉnh EXP nhận được khi Khai Đỉnh.",
+          "rarity": "orange"
+        }
+      },
+      {
+        "name": "Phần Thiên Kích",
+        "type": "weapon",
+        "level": 80,
+        "rarity": "orange",
+        "power": 28534,
+        "baseStats": {
+          "atk": 13492
+        },
+        "affixes": [
+          {
+            "type": "ATK_PERCENT",
+            "label": "Công Kích",
+            "value": 13.5,
+            "isPercent": true
+          },
+          {
+            "type": "CRIT_DAMAGE",
+            "label": "Sát Thương Bạo",
+            "value": 27.3,
+            "isPercent": true
+          },
+          {
+            "type": "DEF_PERCENT",
+            "label": "Phòng Thủ",
+            "value": 14.5,
+            "isPercent": true
+          },
+          {
+            "type": "LOOT_RATE",
+            "label": "Cơ Duyên Bảo Vật",
+            "value": 15.9,
+            "isPercent": true
+          }
+        ],
+        "specialEffect": {
+          "id": "thien_dao_linh",
+          "name": "Thiên Đạo Tụ Linh",
+          "description": "+12% Tu Luyện EXP nhận được mỗi lần Khai Đỉnh.",
+          "rarity": "orange"
+        }
+      },
+      {
+        "name": "Cửu Thiên Cổ Đỉnh",
+        "type": "artifact",
+        "level": 80,
+        "rarity": "orange",
+        "power": 33840,
+        "baseStats": {
+          "atk": 6483,
+          "hp": 57780,
+          "def": 3421,
+          "cultivationRate": 11.6
+        },
+        "affixes": [
+          {
+            "type": "TOWER_EXP",
+            "label": "Cống Hiến Đỉnh EXP",
+            "value": 13.1,
+            "isPercent": true
+          },
+          {
+            "type": "ATK_PERCENT",
+            "label": "Công Kích",
+            "value": 15.1,
+            "isPercent": true
+          },
+          {
+            "type": "CRIT_RATE",
+            "label": "Bạo Kích",
+            "value": 8,
+            "isPercent": true
+          },
+          {
+            "type": "ATTACK_SPEED",
+            "label": "Tốc Độ Xuất Chiêu",
+            "value": 8.7,
+            "isPercent": true
+          }
+        ],
+        "specialEffect": {
+          "id": "thien_dao_linh",
+          "name": "Thiên Đạo Tụ Linh",
+          "description": "+12% Tu Luyện EXP nhận được mỗi lần Khai Đỉnh.",
+          "rarity": "orange"
+        }
+      },
+      {
+        "name": "Cửu Thiên Chiến Giáp",
+        "type": "armor",
+        "level": 80,
+        "rarity": "orange",
+        "power": 44481,
+        "baseStats": {
+          "hp": 109071,
+          "def": 6625
+        },
+        "affixes": [
+          {
+            "type": "LOOT_RATE",
+            "label": "Cơ Duyên Bảo Vật",
+            "value": 9.3,
+            "isPercent": true
+          },
+          {
+            "type": "ATTACK_SPEED",
+            "label": "Tốc Độ Xuất Chiêu",
+            "value": 8.1,
+            "isPercent": true
+          },
+          {
+            "type": "CRIT_DAMAGE",
+            "label": "Sát Thương Bạo",
+            "value": 28.9,
+            "isPercent": true
+          },
+          {
+            "type": "ATK_PERCENT",
+            "label": "Công Kích",
+            "value": 14.4,
+            "isPercent": true
+          }
+        ],
+        "specialEffect": {
+          "id": "thien_dao_linh",
+          "name": "Thiên Đạo Tụ Linh",
+          "description": "+12% Tu Luyện EXP nhận được mỗi lần Khai Đỉnh.",
+          "rarity": "orange"
+        }
+      },
+      {
+        "name": "Xích Viêm Tiên Y",
+        "type": "armor",
+        "level": 80,
+        "rarity": "orange",
+        "power": 43046,
+        "baseStats": {
+          "hp": 114513,
+          "def": 6768
+        },
+        "affixes": [
+          {
+            "type": "HP_PERCENT",
+            "label": "Sinh Lực",
+            "value": 15.6,
+            "isPercent": true
+          },
+          {
+            "type": "ATK_PERCENT",
+            "label": "Công Kích",
+            "value": 14.4,
+            "isPercent": true
+          },
+          {
+            "type": "CRIT_RATE",
+            "label": "Bạo Kích",
+            "value": 7.7,
+            "isPercent": true
+          },
+          {
+            "type": "DEF_PERCENT",
+            "label": "Phòng Thủ",
+            "value": 11.2,
+            "isPercent": true
+          }
+        ],
+        "specialEffect": {
+          "id": "thien_kiem",
+          "name": "Thiên Kiếm Cộng Minh",
+          "description": "+10% Đỉnh EXP nhận được khi Khai Đỉnh.",
+          "rarity": "orange"
+        }
+      },
+      {
+        "name": "Vạn Đạo Huyền Giới",
+        "type": "ring",
+        "level": 80,
+        "rarity": "red",
+        "power": 23261,
+        "baseStats": {
+          "atk": 8028,
+          "critRate": 55.7
+        },
+        "affixes": [
+          {
+            "type": "ATTACK_SPEED",
+            "label": "Tốc Độ Xuất Chiêu",
+            "value": 13.7,
+            "isPercent": true
+          },
+          {
+            "type": "HP_PERCENT",
+            "label": "Sinh Lực",
+            "value": 19.3,
+            "isPercent": true
+          },
+          {
+            "type": "LOOT_RATE",
+            "label": "Cơ Duyên Bảo Vật",
+            "value": 18.3,
+            "isPercent": true
+          },
+          {
+            "type": "CULTIVATION_RATE",
+            "label": "Tốc Độ Tu Luyện",
+            "value": 16,
+            "isPercent": true
+          },
+          {
+            "type": "CRIT_RATE",
+            "label": "Bạo Kích",
+            "value": 9.1,
+            "isPercent": true
+          }
+        ],
+        "specialEffect": {
+          "id": "van_dao_tao_hoa",
+          "name": "Vạn Đạo Tạo Hóa",
+          "description": "+20% Đỉnh EXP và tăng +1 Tiến độ Loot mỗi lần Khai Đỉnh.",
+          "rarity": "red"
+        }
+      },
+      {
+        "name": "Vạn Đạo Ngọc Giới",
+        "type": "ring",
+        "level": 80,
+        "rarity": "red",
+        "power": 22701,
+        "baseStats": {
+          "atk": 8134,
+          "critRate": 54.5
+        },
+        "affixes": [
+          {
+            "type": "CRIT_RATE",
+            "label": "Bạo Kích",
+            "value": 7.5,
+            "isPercent": true
+          },
+          {
+            "type": "ATK_PERCENT",
+            "label": "Công Kích",
+            "value": 14.2,
+            "isPercent": true
+          },
+          {
+            "type": "CULTIVATION_RATE",
+            "label": "Tốc Độ Tu Luyện",
+            "value": 15.8,
+            "isPercent": true
+          },
+          {
+            "type": "DEF_PERCENT",
+            "label": "Phòng Thủ",
+            "value": 18.4,
+            "isPercent": true
+          },
+          {
+            "type": "TOWER_EXP",
+            "label": "Cống Hiến Đỉnh EXP",
+            "value": 14.3,
+            "isPercent": true
+          }
+        ],
+        "specialEffect": {
+          "id": "van_dao_tao_hoa",
+          "name": "Vạn Đạo Tạo Hóa",
+          "description": "+20% Đỉnh EXP và tăng +1 Tiến độ Loot mỗi lần Khai Đỉnh.",
+          "rarity": "red"
+        }
+      },
+      {
+        "name": "Hồng Mông Tiên Y",
+        "type": "armor",
+        "level": 80,
+        "rarity": "red",
+        "power": 75945,
+        "baseStats": {
+          "hp": 153618,
+          "def": 9015
+        },
+        "affixes": [
+          {
+            "type": "ATK_PERCENT",
+            "label": "Công Kích",
+            "value": 14.3,
+            "isPercent": true
+          },
+          {
+            "type": "CRIT_DAMAGE",
+            "label": "Sát Thương Bạo",
+            "value": 29.4,
+            "isPercent": true
+          },
+          {
+            "type": "TOWER_EXP",
+            "label": "Cống Hiến Đỉnh EXP",
+            "value": 16.4,
+            "isPercent": true
+          },
+          {
+            "type": "ATTACK_SPEED",
+            "label": "Tốc Độ Xuất Chiêu",
+            "value": 8.7,
+            "isPercent": true
+          },
+          {
+            "type": "DEF_PERCENT",
+            "label": "Phòng Thủ",
+            "value": 15,
+            "isPercent": true
+          }
+        ],
+        "specialEffect": {
+          "id": "tien_dao_burst",
+          "name": "Tiên Đạo quán Đỉnh",
+          "description": "Mỗi 10 lần Khai Đỉnh nhận thêm 1 luồng Đỉnh EXP bạo phát (+150% Đỉnh EXP).",
+          "rarity": "red"
+        }
+      },
+      {
+        "name": "Hồng Mông Thương",
+        "type": "weapon",
+        "level": 80,
+        "rarity": "red",
+        "power": 48177,
+        "baseStats": {
+          "atk": 19672
+        },
+        "affixes": [
+          {
+            "type": "LOOT_RATE",
+            "label": "Cơ Duyên Bảo Vật",
+            "value": 16.5,
+            "isPercent": true
+          },
+          {
+            "type": "CRIT_DAMAGE",
+            "label": "Sát Thương Bạo",
+            "value": 25,
+            "isPercent": true
+          },
+          {
+            "type": "ATTACK_SPEED",
+            "label": "Tốc Độ Xuất Chiêu",
+            "value": 8.4,
+            "isPercent": true
+          },
+          {
+            "type": "DEF_PERCENT",
+            "label": "Phòng Thủ",
+            "value": 18.5,
+            "isPercent": true
+          },
+          {
+            "type": "HP_PERCENT",
+            "label": "Sinh Lực",
+            "value": 14.4,
+            "isPercent": true
+          }
+        ],
+        "specialEffect": {
+          "id": "tien_dao_burst",
+          "name": "Tiên Đạo quán Đỉnh",
+          "description": "Mỗi 10 lần Khai Đỉnh nhận thêm 1 luồng Đỉnh EXP bạo phát (+150% Đỉnh EXP).",
+          "rarity": "red"
+        }
+      },
+      {
+        "name": "Hỗn Độn Phi Ngoa",
+        "type": "boots",
+        "level": 80,
+        "rarity": "red",
+        "power": 34557,
+        "baseStats": {
+          "def": 7521,
+          "attackSpeed": 34.5
+        },
+        "affixes": [
+          {
+            "type": "DEF_PERCENT",
+            "label": "Phòng Thủ",
+            "value": 12.2,
+            "isPercent": true
+          },
+          {
+            "type": "ATTACK_SPEED",
+            "label": "Tốc Độ Xuất Chiêu",
+            "value": 8.8,
+            "isPercent": true
+          },
+          {
+            "type": "TOWER_EXP",
+            "label": "Cống Hiến Đỉnh EXP",
+            "value": 15.9,
+            "isPercent": true
+          },
+          {
+            "type": "CRIT_DAMAGE",
+            "label": "Sát Thương Bạo",
+            "value": 32.3,
+            "isPercent": true
+          },
+          {
+            "type": "HP_PERCENT",
+            "label": "Sinh Lực",
+            "value": 18.6,
+            "isPercent": true
+          }
+        ],
+        "specialEffect": {
+          "id": "tien_dao_burst",
+          "name": "Tiên Đạo quán Đỉnh",
+          "description": "Mỗi 10 lần Khai Đỉnh nhận thêm 1 luồng Đỉnh EXP bạo phát (+150% Đỉnh EXP).",
+          "rarity": "red"
+        }
+      },
+      {
+        "name": "Vạn Đạo Vân Hài",
+        "type": "boots",
+        "level": 80,
+        "rarity": "red",
+        "power": 36648,
+        "baseStats": {
+          "def": 7769,
+          "attackSpeed": 35.9
+        },
+        "affixes": [
+          {
+            "type": "LOOT_RATE",
+            "label": "Cơ Duyên Bảo Vật",
+            "value": 12.2,
+            "isPercent": true
+          },
+          {
+            "type": "CRIT_RATE",
+            "label": "Bạo Kích",
+            "value": 7.2,
+            "isPercent": true
+          },
+          {
+            "type": "TOWER_EXP",
+            "label": "Cống Hiến Đỉnh EXP",
+            "value": 21.1,
+            "isPercent": true
+          },
+          {
+            "type": "CRIT_DAMAGE",
+            "label": "Sát Thương Bạo",
+            "value": 34.6,
+            "isPercent": true
+          },
+          {
+            "type": "ATK_PERCENT",
+            "label": "Công Kích",
+            "value": 18.3,
+            "isPercent": true
+          }
+        ],
+        "specialEffect": {
+          "id": "tien_dao_burst",
+          "name": "Tiên Đạo quán Đỉnh",
+          "description": "Mỗi 10 lần Khai Đỉnh nhận thêm 1 luồng Đỉnh EXP bạo phát (+150% Đỉnh EXP).",
+          "rarity": "red"
+        }
+      },
+      {
+        "name": "Vạn Đạo Linh Hoàn",
+        "type": "ring",
+        "level": 80,
+        "rarity": "red",
+        "power": 25106,
+        "baseStats": {
+          "atk": 8113,
+          "critRate": 54.5
+        },
+        "affixes": [
+          {
+            "type": "LOOT_RATE",
+            "label": "Cơ Duyên Bảo Vật",
+            "value": 15,
+            "isPercent": true
+          },
+          {
+            "type": "CRIT_DAMAGE",
+            "label": "Sát Thương Bạo",
+            "value": 31,
+            "isPercent": true
+          },
+          {
+            "type": "ATTACK_SPEED",
+            "label": "Tốc Độ Xuất Chiêu",
+            "value": 11.9,
+            "isPercent": true
+          },
+          {
+            "type": "TOWER_EXP",
+            "label": "Cống Hiến Đỉnh EXP",
+            "value": 19.3,
+            "isPercent": true
+          },
+          {
+            "type": "CULTIVATION_RATE",
+            "label": "Tốc Độ Tu Luyện",
+            "value": 14,
+            "isPercent": true
+          }
+        ],
+        "specialEffect": {
+          "id": "tien_dao_burst",
+          "name": "Tiên Đạo quán Đỉnh",
+          "description": "Mỗi 10 lần Khai Đỉnh nhận thêm 1 luồng Đỉnh EXP bạo phát (+150% Đỉnh EXP).",
+          "rarity": "red"
+        }
+      },
+      {
+        "name": "Tiên Thiên Mão",
+        "type": "helmet",
+        "level": 80,
+        "rarity": "red",
+        "power": 53430,
+        "baseStats": {
+          "hp": 120362,
+          "def": 6632
+        },
+        "affixes": [
+          {
+            "type": "CRIT_RATE",
+            "label": "Bạo Kích",
+            "value": 7.9,
+            "isPercent": true
+          },
+          {
+            "type": "LOOT_RATE",
+            "label": "Cơ Duyên Bảo Vật",
+            "value": 13.8,
+            "isPercent": true
+          },
+          {
+            "type": "DEF_PERCENT",
+            "label": "Phòng Thủ",
+            "value": 14.3,
+            "isPercent": true
+          },
+          {
+            "type": "CULTIVATION_RATE",
+            "label": "Tốc Độ Tu Luyện",
+            "value": 12,
+            "isPercent": true
+          },
+          {
+            "type": "HP_PERCENT",
+            "label": "Sinh Lực",
+            "value": 20,
+            "isPercent": true
+          }
+        ],
+        "specialEffect": {
+          "id": "van_dao_tao_hoa",
+          "name": "Vạn Đạo Tạo Hóa",
+          "description": "+20% Đỉnh EXP và tăng +1 Tiến độ Loot mỗi lần Khai Đỉnh.",
+          "rarity": "red"
+        }
+      },
+      {
+        "name": "Vạn Đạo Vân Hài",
+        "type": "boots",
+        "level": 80,
+        "rarity": "red",
+        "power": 33347,
+        "baseStats": {
+          "def": 7858,
+          "attackSpeed": 35.5
+        },
+        "affixes": [
+          {
+            "type": "LOOT_RATE",
+            "label": "Cơ Duyên Bảo Vật",
+            "value": 17.5,
+            "isPercent": true
+          },
+          {
+            "type": "ATTACK_SPEED",
+            "label": "Tốc Độ Xuất Chiêu",
+            "value": 10.3,
+            "isPercent": true
+          },
+          {
+            "type": "HP_PERCENT",
+            "label": "Sinh Lực",
+            "value": 13.9,
+            "isPercent": true
+          },
+          {
+            "type": "TOWER_EXP",
+            "label": "Cống Hiến Đỉnh EXP",
+            "value": 19.5,
+            "isPercent": true
+          },
+          {
+            "type": "CULTIVATION_RATE",
+            "label": "Tốc Độ Tu Luyện",
+            "value": 11,
+            "isPercent": true
+          }
+        ],
+        "specialEffect": {
+          "id": "van_dao_tao_hoa",
+          "name": "Vạn Đạo Tạo Hóa",
+          "description": "+20% Đỉnh EXP và tăng +1 Tiến độ Loot mỗi lần Khai Đỉnh.",
+          "rarity": "red"
+        }
+      },
+      {
+        "name": "Thái Sơ Giới Chỉ",
+        "type": "ring",
+        "level": 80,
+        "rarity": "red",
+        "power": 22825,
+        "baseStats": {
+          "atk": 8029,
+          "critRate": 51.8
+        },
+        "affixes": [
+          {
+            "type": "ATK_PERCENT",
+            "label": "Công Kích",
+            "value": 16.7,
+            "isPercent": true
+          },
+          {
+            "type": "ATTACK_SPEED",
+            "label": "Tốc Độ Xuất Chiêu",
+            "value": 13,
+            "isPercent": true
+          },
+          {
+            "type": "CULTIVATION_RATE",
+            "label": "Tốc Độ Tu Luyện",
+            "value": 15,
+            "isPercent": true
+          },
+          {
+            "type": "HP_PERCENT",
+            "label": "Sinh Lực",
+            "value": 14.5,
+            "isPercent": true
+          },
+          {
+            "type": "LOOT_RATE",
+            "label": "Cơ Duyên Bảo Vật",
+            "value": 15.7,
+            "isPercent": true
+          }
+        ],
+        "specialEffect": {
+          "id": "tien_dao_burst",
+          "name": "Tiên Đạo quán Đỉnh",
+          "description": "Mỗi 10 lần Khai Đỉnh nhận thêm 1 luồng Đỉnh EXP bạo phát (+150% Đỉnh EXP).",
+          "rarity": "red"
+        }
+      }
+    ],
+    "rarityCounts": {
+      "white": 1171,
+      "green": 524,
+      "blue": 193,
+      "purple": 90,
+      "orange": 21,
+      "red": 1
+    }
+  }
+}

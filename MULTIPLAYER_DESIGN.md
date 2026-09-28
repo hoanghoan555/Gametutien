@@ -1,6 +1,6 @@
 # VẠN ĐẠO TIÊN ĐỈNH — MULTIPLAYER DESIGN AUDIT
 
-> **Trạng thái:** v0.2 — **P5.0 ĐÃ NGHIỆM THU**: D1–D12 chốt theo khuyến nghị + 4 ràng buộc triển khai P5.1 đã khoá (mục 13). Tài liệu này là *design approved with implementation constraints* — không tự diễn giải thêm gameplay.
+> **Trạng thái:** v0.3 — **P5.0 ĐÃ NGHIỆM THU** (D1–D12 + ràng buộc §13). **P5.1 đã triển khai và nghiệm thu theo 12 gate (§13.5)** — chưa có gameplay online: `/actions/cultivate` vẫn trả 501.
 > **Baseline so sánh:** commit `20e5b5e` (v1.2). Mọi thay đổi MP về sau phải đối chiếu baseline này (Phụ lục A + `npm run sim`).
 > **Bối cảnh:** Chủ dự án yêu cầu audit thiết kế theo 8 hướng trước khi code multiplayer. Ánh xạ 8 điểm → mục tài liệu ở §11.
 
@@ -199,7 +199,7 @@ POST /migration/import  { save: SaveDataV1 } → { ok, player }
 | Bước | Nội dung | Gate (điều kiện qua) |
 |------|----------|----------------------|
 | **P5.0** | Audit thiết kế (tài liệu này) | Chủ dự án chốt D1–D12 |
-| P5.1 | Gói `shared` + server skeleton (auth guest, `/sync` read-only) | `npm run sim` chạy trên shared cho cùng kết quả baseline; lint/build client không đổi; **＋ 12 điều kiện gate mục 13.3** |
+| **P5.1 ✅** (2026-09-29) | Gói `shared` + server skeleton (auth guest, `/sync` read-only) | `npm run sim` chạy trên shared cho cùng kết quả baseline; lint/build client không đổi; **＋ 12 điều kiện gate mục 13.3** — kết quả & bằng chứng: §13.5 |
 | P5.2 | `/actions/cultivate` online + chống spam + loot server-side | 2 browser cùng thấy 1 Đỉnh; load test 100 CCU × 1 action/s; server chặn được client sửa rate |
 | P5.3 | Realtime + BXH cống hiến + milestone | Broadcast throttle đúng; BXH khớp `contributions` |
 | P5.4 | Migration v1 + offline claim trên server | Test save hỏng (sanitize), offline 60s/1h/8h khớp tuyệt đối test 5 §29 |
@@ -294,3 +294,42 @@ COMMIT;
 ```
 
 DDL đầy đủ: `server/db/schema.sql` (nguồn: bảng §8.1 — `players` có `loot_progress`/`loot_threshold` per-user theo D5).
+
+### 13.5 Kết quả triển khai P5.1 (2026-09-29) — nghiệm thu theo gate
+
+**Bằng chứng tự động** (chạy lại được trên máy sạch):
+
+| Lệnh | Kết quả |
+|------|---------|
+| `npm run lint` | PASS — `tsc --noEmit` phủ cả client, tests và server |
+| `npm run build` | PASS — bundle client không đổi hành vi |
+| `npm run sim` | PASS 11/11 bất biến; các số seeded khớp baseline (2h: 667 loot · 369,614 hành động · 12,000 món) — **không đổi balance** |
+| `npm run mp:test` | PASS **30/30** (8 file: RNG HMAC, batch=single, offline semantics, concurrency store, API, golden parity) |
+| Golden fixture | `tests/fixtures/loot-golden.json` (sinh từ code TRƯỚC refactor) vẫn **byte-identical** — `tests/loot-parity.test.ts` |
+| Smoke server thật | `/healthz` OK · `/auth/guest` trả token+userId · `/sync` read-only đúng shape · `/actions/cultivate` → **501** |
+
+**Checklist 12 gate:**
+
+| # | Gate | Bằng chứng |
+|---|------|-----------|
+| 1 | `shared` không React/DOM | `src/shared/*` + `server/src/*` — grep `react`/`window`/`document`/`localStorage` sạch |
+| 2 | RNG/Clock/ID dependency-inject | Contracts `src/shared/deps.ts`; client impl `src/utils/clientDeps.ts`; server impl `server/src/rng.ts`; **poison test**: chặn `Math.random`/`Date.now` mà đường HMAC vẫn chạy đúng (`tests/server-rng.test.ts`) |
+| 3 | `lootProgress` per-player, Tower không sở hữu | `MpPlayerState.lootProgress/lootThreshold` vs `MpTowerState` không có trường loot; test D5 (`tests/authority-batch.test.ts`) |
+| 4 | Global Tower update transaction-safe | `server/src/store/memory.ts` (`writeLock` ≡ `SELECT … FOR UPDATE`) + SQL recipe `server/db/schema.sql`; test **40 user song song = chạy tuần tự** từng field |
+| 5 | `seq` idempotent + concurrent-safe | Receipt theo `(userId, seq)`: replay trả ack cache; 5 request song song cùng seq ⇒ **đúng 1 lần compute**; seq lệch ⇒ `seq_conflict` kèm `lastSeq` |
+| 6 | `/auth/guest` hoạt động | `server/src/app.ts` + `server/src/auth.ts` (token HMAC, TTL); test: idempotent theo thiết bị, body sai ⇒ 400, token hết hạn ⇒ 401 |
+| 7 | `/sync` read-only | Test: 2 lần gọi y hệt (trừ `serverTime`); sửa bản trả về không ảnh hưởng state nội bộ; trả 401 khi thiếu/sai token |
+| 8 | Migration v1 không mở rộng ngoài D6 | P5.1 **không có** route/code migration; bảng `migrations` để trống chờ P5.4; **chưa đặt trần Power** |
+| 9 | Client solo build/lint bình thường | `npm run lint` + `npm run build` PASS |
+| 10 | `npm run sim` PASS y hệt | Xem bảng trên (số seeded không đổi) |
+| 11 | Test batch N = N singles | `tests/authority-batch.test.ts` (seeded deps) + `tests/server-rng.test.ts` (HMAC deps production config) |
+| 12 | Chưa mở `/actions/cultivate` | Route trả `501 not_implemented`; test API assert đúng |
+
+**File chính của P5.1:** `src/shared/{deps,rng,random,authority,version}.ts` · `src/utils/clientDeps.ts` · `server/src/{rng,auth,app,main}.ts` · `server/src/store/{types,memory}.ts` · `server/db/schema.sql` · `tests/*.test.ts` · `scripts/gen-loot-golden.ts`.
+
+**Việc CHƯA làm ở P5.1 (đúng phạm vi gate — không phải thiếu sót):**
+
+- Adapter Postgres thật + integration test trên PG (I7) → **P5.2** khi provision DB (recipe transaction đã khoá trong `schema.sql`).
+- `/actions/cultivate` online + budget chống spam + endpoint offline claim → **P5.2/P5.4**.
+- Migration save v1 (D6) → **P5.4**; policy trần Power phải chốt trước khi implement.
+- `GAME_DESIGN.md` §5/§19/§22 + changelog v1.3: chưa sửa — GAME_DESIGN hiện vẫn là đặc tả của **solo v1.2 đang chạy**; cập nhật khi MP bật feature flag (P5.6) hoặc theo yêu cầu riêng của chủ dự án.
