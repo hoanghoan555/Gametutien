@@ -1,6 +1,7 @@
 import React from 'react';
 import { useGameStore } from '../../stores/gameStore';
 import { useInventoryStore } from '../../stores/inventory.store';
+import { getPowerDeltaIfEquipped } from '../../systems/progression';
 import { ItemCard } from '../equipment/ItemCard';
 
 export const InventoryGrid: React.FC = () => {
@@ -26,7 +27,7 @@ export const InventoryGrid: React.FC = () => {
         <ItemCard
           key={item.id}
           item={item}
-          equippedItemInSlot={player.equipment[item.type]}
+          powerDelta={getPowerDeltaIfEquipped(player, item)}
           onClick={(clicked) => setSelectedItem(clicked)}
         />
       ))}

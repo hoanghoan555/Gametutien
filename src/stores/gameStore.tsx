@@ -174,11 +174,27 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
   const [toasts, setToasts] = useState<ToastNotice[]>([]);
   const [isCultivatingPulse, setIsCultivatingPulse] = useState(false);
 
-  // Refs to hold latest state inside central interval without re-creating interval
+  // TASK 002B: stateRef là bản sao đồng bộ của state (nguồn đọc duy nhất cho actions).
+  // Mọi thay đổi state đi qua commit* — updater thuần, không race giữa snapshot và setState.
   const stateRef = useRef({ player, tower, settings });
-  useEffect(() => {
-    stateRef.current = { player, tower, settings };
-  }, [player, tower, settings]);
+
+  const commitPlayer = useCallback((next: PlayerState) => {
+    if (next === stateRef.current.player) return;
+    stateRef.current = { ...stateRef.current, player: next };
+    setPlayer(next);
+  }, []);
+
+  const commitTower = useCallback((next: TowerState) => {
+    if (next === stateRef.current.tower) return;
+    stateRef.current = { ...stateRef.current, tower: next };
+    setTower(next);
+  }, []);
+
+  const commitSettings = useCallback((next: SettingsState) => {
+    if (next === stateRef.current.settings) return;
+    stateRef.current = { ...stateRef.current, settings: next };
+    setSettings(next);
+  }, []);
 
   // Bug #1 (TASK 002A): mốc thời gian nền để tính tiến trình bế quan khi tab hidden → visible.
   const sessionStartedAtRef = useRef(Date.now());
@@ -244,8 +260,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
       );
       if (!offline.summary) return;
 
-      setPlayer(offline.player);
-      setTower(offline.tower);
+      commitPlayer(offline.player);
+      commitTower(offline.tower);
       setOfflineReward(offline.summary);
       // Chỉ sau khi đã áp dụng thưởng mới ghi mốc thời gian mới — tránh mất khoảng thời gian vừa tính.
       persistSnapshot({ player: offline.player, tower: offline.tower, settings: currentSettings });
@@ -268,7 +284,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
       window.removeEventListener('beforeunload', handleBeforeUnload);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, []);
+  }, [commitPlayer, commitTower]);
 
   const pushToast = useCallback(
     (message: string, rarity?: Rarity, powerDelta?: number) => {
@@ -366,8 +382,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
         actionsCount
       );
 
-      setPlayer(result.player);
-      setTower(result.tower);
+      commitPlayer(result.player);
+      commitTower(result.tower);
 
       if (result.towerLevelsGained > 0 || result.playerLevelsGained > 0) {
         soundManager.playLevelUp(curSettings.soundEnabled);
@@ -387,7 +403,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
         isManual
       );
     },
-    [enqueueVisualFeedback]
+    [enqueueVisualFeedback, commitPlayer, commitTower]
   );
 
   // Section 30: Single Central Game Loop / Tick Manager
@@ -409,9 +425,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
       setFlyingLootItems((prev) =>
         prev.length > 0 ? prev.filter((l) => now - l.createdAt < 1050) : prev
       );
-      setToasts((prev) =>
-        prev.length > 0 ? prev.filter((_, idx) => idx > 0 || prev.length > 3) : prev
-      );
+      // §30: tick chỉ giới hạn tối đa 3 toast — việc hết hạn 2600ms do effect riêng lo.
+      setToasts((prev) => (prev.length > 3 ? prev.slice(-3) : prev));
 
       // Auto cultivation batch processing
       if (curPlayer.autoCultivation) {
@@ -439,185 +454,167 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
   }, [toasts]);
 
   const toggleAutoCultivation = useCallback(() => {
-    setPlayer((prev) => ({
-      ...prev,
-      autoCultivation: !prev.autoCultivation,
-    }));
-  }, []);
+    const prev = stateRef.current.player;
+    commitPlayer({ ...prev, autoCultivation: !prev.autoCultivation });
+  }, [commitPlayer]);
 
   const equipItemFromInventory = useCallback(
     (itemId: string) => {
-      setPlayer((prev) => {
-        const idx = prev.inventory.findIndex((i) => i.id === itemId);
-        if (idx === -1) return prev;
-
-        const targetItem = prev.inventory[idx];
-        const currentEquipped = prev.equipment[targetItem.type];
-        const nextInventory = [...prev.inventory];
-        nextInventory.splice(idx, 1);
-
-        if (currentEquipped) {
-          nextInventory.unshift(currentEquipped);
-        }
-
-        const nextEquipment = {
-          ...prev.equipment,
-          [targetItem.type]: targetItem,
-        };
-        const { stats, power } = calculateStatsAndPower(prev.level, nextEquipment);
-        const delta = power - prev.power;
-
-        pushToast(
-          `Đã trang bị ${targetItem.name}`,
-          targetItem.rarity,
-          delta > 0 ? delta : undefined
-        );
-
-        return {
-          ...prev,
-          equipment: nextEquipment,
-          inventory: nextInventory,
-          stats,
-          power,
-        };
-      });
+      // TASK 002B: đọc snapshot đồng bộ từ stateRef, tính thuần, toast ngoài updater.
+      const prev = stateRef.current.player;
+      const idx = prev.inventory.findIndex((i) => i.id === itemId);
       setSelectedItem(null);
+      if (idx === -1) return;
+
+      const targetItem = prev.inventory[idx];
+      const currentEquipped = prev.equipment[targetItem.type];
+      const nextInventory = [...prev.inventory];
+      nextInventory.splice(idx, 1);
+
+      if (currentEquipped) {
+        nextInventory.unshift(currentEquipped);
+      }
+
+      const nextEquipment = {
+        ...prev.equipment,
+        [targetItem.type]: targetItem,
+      };
+      const { stats, power } = calculateStatsAndPower(prev.level, nextEquipment);
+      commitPlayer({
+        ...prev,
+        equipment: nextEquipment,
+        inventory: nextInventory,
+        stats,
+        power,
+      });
+
+      const delta = power - prev.power;
+      pushToast(
+        `Đã trang bị ${targetItem.name}`,
+        targetItem.rarity,
+        delta > 0 ? delta : undefined
+      );
     },
-    [pushToast]
+    [commitPlayer, pushToast]
   );
 
   const unequipSlot = useCallback(
     (slot: EquipmentType) => {
-      setPlayer((prev) => {
-        const equipped = prev.equipment[slot];
-        if (!equipped) return prev;
-        if (prev.inventory.length >= MAX_INVENTORY_SLOTS) {
-          pushToast('Túi đồ đã đầy (100/100)! Hãy phân giải bớt trang bị.');
-          return prev;
-        }
+      const prev = stateRef.current.player;
+      const equipped = prev.equipment[slot];
+      if (!equipped) return;
+      if (prev.inventory.length >= MAX_INVENTORY_SLOTS) {
+        pushToast('Túi đồ đã đầy (100/100)! Hãy phân giải bớt trang bị.');
+        return;
+      }
 
-        const nextEquipment = {
-          ...prev.equipment,
-          [slot]: null,
-        };
-        const { stats, power } = calculateStatsAndPower(prev.level, nextEquipment);
+      const nextEquipment = {
+        ...prev.equipment,
+        [slot]: null,
+      };
+      const { stats, power } = calculateStatsAndPower(prev.level, nextEquipment);
 
-        return {
-          ...prev,
-          equipment: nextEquipment,
-          inventory: [equipped, ...prev.inventory],
-          stats,
-          power,
-        };
+      commitPlayer({
+        ...prev,
+        equipment: nextEquipment,
+        inventory: [equipped, ...prev.inventory],
+        stats,
+        power,
       });
       setSelectedItem(null);
     },
-    [pushToast]
+    [commitPlayer, pushToast]
   );
 
   const dismantleSingleItem = useCallback(
     (itemId: string) => {
-      const { player: curPlayer } = stateRef.current;
-      const targetSnapshot = curPlayer.inventory.find((item) => item.id === itemId);
-      if (!targetSnapshot) return;
+      const prev = stateRef.current.player;
+      const target = prev.inventory.find((item) => item.id === itemId);
+      if (!target) return;
 
-      // Bug #3 (TASK 002A): state updater thuần — không toast/không side effect bên trong.
-      setPlayer((prev) => {
-        const target = prev.inventory.find((i) => i.id === itemId);
-        if (!target) return prev;
-
-        return {
-          ...prev,
-          inventory: prev.inventory.filter((i) => i.id !== itemId),
-          materials: addMaterials(prev.materials, getDismantleReward(target)),
-        };
+      // TASK 002B: commit đồng bộ từ snapshot — updater không còn side effect.
+      commitPlayer({
+        ...prev,
+        inventory: prev.inventory.filter((i) => i.id !== itemId),
+        materials: addMaterials(prev.materials, getDismantleReward(target)),
       });
 
-      pushToast(`Phân giải ${targetSnapshot.name} thành công`, targetSnapshot.rarity);
+      pushToast(`Phân giải ${target.name} thành công`, target.rarity);
       setSelectedItem(null);
     },
-    [pushToast]
+    [commitPlayer, pushToast]
   );
 
   const dismantleBulkByRarity = useCallback(
     (maxRarity: Rarity): number => {
-      const { player: curPlayer } = stateRef.current;
+      const prev = stateRef.current.player;
       const maxOrder = RARITY_CONFIG[maxRarity].order;
-      const snapshotCount = curPlayer.inventory.reduce(
-        (count, item) =>
-          item.rarity !== 'red' && RARITY_CONFIG[item.rarity].order <= maxOrder
-            ? count + 1
-            : count,
-        0
-      );
 
-      // Bug #3 (TASK 002A): updater thuần (StrictMode an toàn) — không toast, không đếm
-      // tích lũy bên trong; kết quả trả về tính từ state quan sát được tại thời điểm gọi.
-      setPlayer((prev) => {
-        const kept: Item[] = [];
-        let updatedMaterials = prev.materials;
-        let removedCount = 0;
+      // TASK 002B: tính thuần từ snapshot đồng bộ rồi commit — số đếm trả về luôn khớp
+      // đúng những gì được áp dụng (không còn khoảng hở giữa snapshot và updater).
+      const kept: Item[] = [];
+      let updatedMaterials = prev.materials;
+      let removedCount = 0;
 
-        for (const item of prev.inventory) {
-          // Rule 14: Không cho auto-dismantle Red
-          if (
-            item.rarity !== 'red' &&
-            RARITY_CONFIG[item.rarity].order <= maxOrder
-          ) {
-            updatedMaterials = addMaterials(
-              updatedMaterials,
-              getDismantleReward(item)
-            );
-            removedCount += 1;
-          } else {
-            kept.push(item);
-          }
+      for (const item of prev.inventory) {
+        // Rule 14: Không cho auto-dismantle Red
+        if (
+          item.rarity !== 'red' &&
+          RARITY_CONFIG[item.rarity].order <= maxOrder
+        ) {
+          updatedMaterials = addMaterials(
+            updatedMaterials,
+            getDismantleReward(item)
+          );
+          removedCount += 1;
+        } else {
+          kept.push(item);
         }
-
-        if (removedCount === 0) return prev;
-
-        return {
-          ...prev,
-          inventory: kept,
-          materials: updatedMaterials,
-        };
-      });
-
-      if (snapshotCount > 0) {
-        pushToast(`Đã phân giải ${snapshotCount} trang bị dư thừa!`);
       }
 
-      return snapshotCount;
+      if (removedCount === 0) return 0;
+
+      commitPlayer({ ...prev, inventory: kept, materials: updatedMaterials });
+      pushToast(`Đã phân giải ${removedCount} trang bị dư thừa!`);
+      return removedCount;
     },
-    [pushToast]
+    [commitPlayer, pushToast]
   );
 
-  const updateSettings = useCallback((partial: Partial<SettingsState>) => {
-    setSettings((prev) => ({ ...prev, ...partial }));
-  }, []);
+  const updateSettings = useCallback(
+    (partial: Partial<SettingsState>) => {
+      commitSettings({ ...stateRef.current.settings, ...partial });
+    },
+    [commitSettings]
+  );
 
   const claimOfflineReward = useCallback(() => {
     setOfflineReward(null);
   }, []);
 
   // --- DEBUG ACTIONS (Section 24) ---
-  const debugAddTowerExp = useCallback((amount: number) => {
-    setTower((prev) => {
-      const res = addTowerExp(prev, amount);
-      return res.tower;
-    });
-  }, []);
+  const debugAddTowerExp = useCallback(
+    (amount: number) => {
+      commitTower(addTowerExp(stateRef.current.tower, amount).tower);
+    },
+    [commitTower]
+  );
 
-  const debugAddPlayerExp = useCallback((amount: number) => {
-    setPlayer((prev) => {
-      const res = addPlayerCultivationExp(prev, amount);
-      return res.player;
-    });
-  }, []);
+  const debugAddPlayerExp = useCallback(
+    (amount: number) => {
+      commitPlayer(
+        addPlayerCultivationExp(stateRef.current.player, amount).player
+      );
+    },
+    [commitPlayer]
+  );
 
-  const debugSetTowerLevel = useCallback((level: number) => {
-    setTower((prev) => setTowerLevelState(prev, level));
-  }, []);
+  const debugSetTowerLevel = useCallback(
+    (level: number) => {
+      commitTower(setTowerLevelState(stateRef.current.tower, level));
+    },
+    [commitTower]
+  );
 
   const debugGenerateItem = useCallback(
     (rarity: Rarity) => {
@@ -629,7 +626,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
 
       const newItem = generateLootItem(curTower.level, rarity);
       const acq = processItemAcquisition(curPlayer, newItem, curSettings);
-      setPlayer(acq.player);
+      commitPlayer(acq.player);
 
       enqueueVisualFeedback(
         0,
@@ -647,7 +644,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
         true
       );
     },
-    [enqueueVisualFeedback]
+    [commitPlayer, enqueueVisualFeedback]
   );
 
   const debugSimulateOffline = useCallback((seconds: number) => {
@@ -664,34 +661,31 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
       simulatedPast,
       Date.now()
     );
-    setPlayer(res.player);
-    setTower(res.tower);
+    commitPlayer(res.player);
+    commitTower(res.tower);
     if (res.summary) {
       setOfflineReward(res.summary);
     }
-  }, []);
+  }, [commitPlayer, commitTower]);
 
   const debugClearInventory = useCallback(() => {
-    setPlayer((prev) => ({
-      ...prev,
-      inventory: [],
-    }));
+    commitPlayer({ ...stateRef.current.player, inventory: [] });
     setSelectedItem(null);
-  }, []);
+  }, [commitPlayer]);
 
   const debugResetSave = useCallback(() => {
     clearSaveData();
     const freshPlayer = createInitialPlayerState();
     const freshTower = createInitialTowerState();
-    setPlayer(freshPlayer);
-    setTower(freshTower);
-    setSettings(INITIAL_SETTINGS);
+    commitPlayer(freshPlayer);
+    commitTower(freshTower);
+    commitSettings(INITIAL_SETTINGS);
     setOfflineReward(null);
     setSelectedItem(null);
     setFloatingContributions([]);
     setFlyingLootItems([]);
     pushToast('Đã xóa dữ liệu lưu và khởi tạo lại Tiên Đỉnh!');
-  }, [pushToast]);
+  }, [commitPlayer, commitSettings, commitTower, pushToast]);
 
   const value = useMemo<GameContextValue>(
     () => ({

@@ -24,6 +24,7 @@ import {
 } from '../src/systems/cultivation';
 import {
   createEmptyEquipmentSlots,
+  getDismantleReward,
   MAX_INVENTORY_SLOTS,
 } from '../src/systems/equipment';
 import { generateLootItem, rollRarity } from '../src/systems/loot';
@@ -36,13 +37,14 @@ import {
   calculatePlayerExpToNext,
   calculateStatsAndPower,
   createInitialPlayerState,
+  getPowerDeltaIfEquipped,
 } from '../src/systems/progression';
 import {
   calculateTowerExpToNextLevel,
   createInitialTowerState,
 } from '../src/systems/tower';
 import { OfflineRewardSummary, SettingsState } from '../src/types/game';
-import { EquipmentType, Item, Rarity } from '../src/types/item';
+import { EquipmentSlots, EquipmentType, Item, ItemStats, Rarity } from '../src/types/item';
 import { PlayerState } from '../src/types/player';
 import { TowerState } from '../src/types/tower';
 import { formatDuration } from '../src/utils/number';
@@ -65,6 +67,14 @@ function section(title: string): void {
 
 function zeroRarityCount(): Record<Rarity, number> {
   return { white: 0, green: 0, blue: 0, purple: 0, orange: 0, red: 0 };
+}
+
+function countReds(player: PlayerState): number {
+  let count = player.inventory.filter((item) => item.rarity === 'red').length;
+  for (const slot of EQUIPMENT_SLOTS_LIST) {
+    if (player.equipment[slot]?.rarity === 'red') count += 1;
+  }
+  return count;
 }
 
 interface CheckResult {
@@ -94,6 +104,7 @@ function checkLoopInvariants(actions: number): CheckResult {
   let powerDropExample = '';
   let statsMismatch = 0;
   let maxInventory = 0;
+  let redsSeen = 0;
 
   for (let i = 0; i < actions; i += 1) {
     const before = player;
@@ -112,6 +123,7 @@ function checkLoopInvariants(actions: number): CheckResult {
       if (g.autoEquipped) autoEquipped += 1;
       else if (g.dismantled) dismantled += 1;
       else stored += 1;
+      if (g.item.rarity === 'red') redsSeen += 1;
     }
 
     if (player.power < before.power) {
@@ -150,6 +162,15 @@ function checkLoopInvariants(actions: number): CheckResult {
   if (statsMismatch > 0) {
     failures.push(`stats/power lệch với recalc: ${fmt(statsMismatch)} trường hợp`);
   }
+  if (maxInventory > MAX_INVENTORY_SLOTS) {
+    failures.push(`Túi vượt sức chứa: đỉnh ${fmt(maxInventory)}/${MAX_INVENTORY_SLOTS}`);
+  }
+  const redsPresent = countReds(player);
+  if (redsPresent !== redsSeen) {
+    failures.push(
+      `Tiên Phẩm bị mất: nhận ${fmt(redsSeen)} nhưng còn ${fmt(redsPresent)} trong túi/trang bị`
+    );
+  }
 
   notes.push(`Mô phỏng ${fmt(actions)} hành động đơn (1 hành động/lần gọi)`);
   notes.push(
@@ -161,6 +182,7 @@ function checkLoopInvariants(actions: number): CheckResult {
   notes.push(
     `Cuối: Đỉnh Lv.${tower.level}, Nhân vật Lv.${player.level}, Power ${fmt(player.power)}, túi ${player.inventory.length}/${MAX_INVENTORY_SLOTS} (đỉnh túi ${maxInventory})`
   );
+  notes.push(`Tiên Phẩm: nhận ${fmt(redsSeen)} — còn nguyên ${fmt(redsPresent)} (Rule 14b)`);
 
   return { name: `1. Bất biến vòng lặp chính (${fmt(actions)} hành động đơn)`, failures, notes };
 }
@@ -286,6 +308,192 @@ function checkAutoEquipRule(samples: number): CheckResult {
   );
 
   return { name: '3. Auto-equip: quy tắc Power thật', failures, notes };
+}
+
+// ---------------------------------------------------------------------------
+// 3b/3c. UI delta Power thật + Rule 14b (Tiên Phẩm không rơi mất)
+// ---------------------------------------------------------------------------
+
+function makeTestItem(
+  type: EquipmentType,
+  rarity: Rarity,
+  level: number,
+  baseStats: ItemStats,
+  power = 10
+): Item {
+  return {
+    id: `test_${type}_${Math.random().toString(36).slice(2, 10)}`,
+    name: `Test ${type}`,
+    type,
+    level,
+    rarity,
+    power,
+    baseStats,
+    affixes: [],
+    createdAt: 0,
+  };
+}
+
+function fullBagOfTestWhiteItems(): Item[] {
+  const items: Item[] = [];
+  for (let i = 0; i < MAX_INVENTORY_SLOTS; i += 1) {
+    items.push(
+      makeTestItem('weapon', 'white', 10, { atk: 10 + i * 0.01 }, 10 + i)
+    );
+  }
+  return items;
+}
+
+const MATERIAL_KEYS = [
+  'basicMaterial',
+  'linhStone',
+  'advancedMaterial',
+  'rareMaterial',
+] as const;
+
+function checkUiPowerDeltaAgreement(samples: number): CheckResult {
+  const failures: string[] = [];
+  const notes: string[] = [];
+  const level = 80;
+
+  const equipment: EquipmentSlots = createEmptyEquipmentSlots();
+  for (const slot of EQUIPMENT_SLOTS_LIST) {
+    equipment[slot] = generateLootItem(level, undefined, slot);
+  }
+  const base = calculateStatsAndPower(level, equipment);
+  const player: PlayerState = {
+    ...createInitialPlayerState(),
+    level,
+    equipment,
+    stats: base.stats,
+    power: base.power,
+  };
+
+  let swaps = 0;
+  let mismatches = 0;
+  let deltaMismatch = 0;
+  let example = '';
+
+  for (let i = 0; i < samples; i += 1) {
+    const type = EQUIPMENT_SLOTS_LIST[i % EQUIPMENT_SLOTS_LIST.length];
+    const candidate = generateLootItem(level, undefined, type);
+    const delta = getPowerDeltaIfEquipped(player, candidate);
+    const result = processItemAcquisition(player, candidate, SETTINGS);
+
+    if (result.autoEquipped) swaps += 1;
+    if (result.autoEquipped !== delta > 0) {
+      mismatches += 1;
+      if (!example) {
+        example = `#${i + 1} ${type}: UI delta ${fmt(delta)} — engine ${
+          result.autoEquipped ? 'trang bị' : 'bỏ qua'
+        }`;
+      }
+    }
+
+    const appliedDelta = result.player.power - player.power;
+    if ((result.autoEquipped && appliedDelta !== delta) || (!result.autoEquipped && appliedDelta !== 0)) {
+      deltaMismatch += 1;
+    }
+  }
+
+  if (mismatches > 0) {
+    failures.push(`UI và engine bất đồng quyết định ${fmt(mismatches)} lần — ví dụ: ${example}`);
+  }
+  if (deltaMismatch > 0) {
+    failures.push(`Delta hiển thị lệch mức tăng Power thật: ${fmt(deltaMismatch)} lần`);
+  }
+  if (swaps === 0) {
+    failures.push('Không có lần trang bị nào trong mẫu — không kiểm chứng được delta');
+  }
+
+  notes.push(
+    `So khớp UI delta với engine trên ${fmt(samples)} ứng viên (Lv.${level}): ${fmt(swaps)} lần trang bị, 0 lệch`
+  );
+
+  return { name: '3b. UI delta Chiến Lực = Power thật (khớp engine)', failures, notes };
+}
+
+function checkRedRetention(): CheckResult {
+  const failures: string[] = [];
+  const notes: string[] = [];
+  const level = 60;
+
+  // Kịch bản 1: loot Đỏ mới, túi đầy, autoEquip TẮT → phải được giữ bằng cách đẩy món yếu nhất ra.
+  let playerA: PlayerState = {
+    ...createInitialPlayerState(),
+    level,
+    inventory: fullBagOfTestWhiteItems(),
+  };
+  const recalcA = calculateStatsAndPower(level, playerA.equipment);
+  playerA = { ...playerA, stats: recalcA.stats, power: recalcA.power };
+
+  const redDrop = makeTestItem('helmet', 'red', level, { hp: 5000 }, 5000);
+  const weakestA = playerA.inventory[0];
+  const beforeMaterialsA = playerA.materials;
+  const resA = processItemAcquisition(playerA, redDrop, {
+    ...SETTINGS,
+    autoEquip: false,
+  });
+  const afterA = resA.player;
+  const rewardA = getDismantleReward(weakestA);
+
+  if (afterA.inventory.length !== MAX_INVENTORY_SLOTS) {
+    failures.push(`[A] Túi sai sức chứa sau khi giữ Tiên Phẩm: ${afterA.inventory.length}`);
+  }
+  if (!afterA.inventory.some((item) => item.id === redDrop.id)) {
+    failures.push('[A] Tiên Phẩm rơi mất khi túi đầy (autoEquip TẮT)');
+  }
+  if (afterA.inventory.some((item) => item.id === weakestA.id)) {
+    failures.push('[A] Món yếu nhất chưa được nhường chỗ');
+  }
+  if (resA.autoEquipped || resA.dismantled) {
+    failures.push('[A] Cờ kết quả sai cho nhánh giữ Tiên Phẩm');
+  }
+  for (const key of MATERIAL_KEYS) {
+    if (afterA.materials[key] - beforeMaterialsA[key] !== rewardA[key]) {
+      failures.push(`[A] Nguyên liệu nhận sai ở ${key}`);
+    }
+  }
+
+  // Kịch bản 2: trang bị Đỏ bị đẩy ra khi auto-equip món mạnh hơn, túi đầy → vẫn phải vào túi.
+  const lowRed = makeTestItem('weapon', 'red', level, { atk: 50 }, 50);
+  const strongDrop = makeTestItem('weapon', 'orange', level, { atk: 1_000_001 }, 1);
+  let playerB: PlayerState = {
+    ...createInitialPlayerState(),
+    level,
+    equipment: { ...createEmptyEquipmentSlots(), weapon: lowRed },
+    inventory: fullBagOfTestWhiteItems(),
+  };
+  const recalcB = calculateStatsAndPower(level, playerB.equipment);
+  playerB = { ...playerB, stats: recalcB.stats, power: recalcB.power };
+
+  if (getPowerDeltaIfEquipped(playerB, strongDrop) <= 0) {
+    failures.push('[B] Tiền đề test sai: strongDrop không phải nâng cấp');
+  }
+  const weakestB = playerB.inventory[0];
+  const resB = processItemAcquisition(playerB, strongDrop, SETTINGS);
+  const afterB = resB.player;
+
+  if (!resB.autoEquipped || afterB.equipment.weapon?.id !== strongDrop.id) {
+    failures.push('[B] Không auto-equip được món nâng cấp');
+  }
+  if (!afterB.inventory.some((item) => item.id === lowRed.id)) {
+    failures.push('[B] Tiên Phẩm bị đẩy ra đã rơi mất khi túi đầy');
+  }
+  if (afterB.inventory.some((item) => item.id === weakestB.id)) {
+    failures.push('[B] Chưa đẩy món yếu nhất ra để giữ Tiên Phẩm');
+  }
+  if (afterB.inventory.length !== MAX_INVENTORY_SLOTS) {
+    failures.push(`[B] Túi sai sức chứa: ${afterB.inventory.length}`);
+  }
+  if (countReds(afterB) !== countReds(playerB)) {
+    failures.push('[B] Số Tiên Phẩm thay đổi ngoài dự kiến');
+  }
+
+  notes.push('[A] Loot Đỏ + túi đầy (autoEquip TẮT): giữ Đỏ, đẩy món yếu nhất, nhận đúng nguyên liệu');
+  notes.push('[B] Trang bị Đỏ bị thay thế + túi đầy: Đỏ vào túi, không rơi mất');
+
+  return { name: '3c. Rule 14b — Tiên Phẩm không rơi mất khi túi đầy', failures, notes };
 }
 
 // ---------------------------------------------------------------------------
@@ -1153,6 +1361,8 @@ function main(): void {
     checkLoopInvariants(actions),
     checkRarityDistribution(rolls),
     checkAutoEquipRule(samples),
+    checkUiPowerDeltaAgreement(samples),
+    checkRedRetention(),
     checkOfflineFixedRate(),
     checkOfflineBoostedRate(),
     checkOfflineLootAndEquip(),

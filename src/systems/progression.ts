@@ -1,6 +1,6 @@
 import { EQUIPMENT_SLOTS_LIST } from '../data/equipment';
 import { getRealmInfoForLevel } from '../data/realms';
-import { EquipmentSlots } from '../types/item';
+import { EquipmentSlots, Item } from '../types/item';
 import { PlayerState, PlayerStats } from '../types/player';
 import { createEmptyEquipmentSlots, createEmptyMaterials } from './equipment';
 
@@ -137,6 +137,20 @@ export function calculateStatsAndPower(
   );
 
   return { stats, power };
+}
+
+/**
+ * Giai đoạn 4 (v1.2): delta Power THẬT nếu trang bị `item` vào ô của nó — dùng cho UI
+ * (ItemCard/ItemDetail). Không so sánh `item.power` vì hai thang đo khác nhau (§17).
+ */
+export function getPowerDeltaIfEquipped(player: PlayerState, item: Item): number {
+  if (player.equipment[item.type]?.id === item.id) return 0;
+
+  const { power } = calculateStatsAndPower(player.level, {
+    ...player.equipment,
+    [item.type]: item,
+  });
+  return power - player.power;
 }
 
 export function createInitialPlayerState(): PlayerState {

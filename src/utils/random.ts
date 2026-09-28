@@ -2,10 +2,6 @@ export function randomFloat(min: number, max: number): number {
   return min + Math.random() * (max - min);
 }
 
-export function randomInt(min: number, max: number): number {
-  return Math.floor(randomFloat(min, max + 1));
-}
-
 export function pickRandom<T>(items: readonly T[]): T {
   const idx = Math.floor(Math.random() * items.length);
   return items[idx];

@@ -9,6 +9,8 @@ export interface RealmConfig {
   baseDefBonus: number;
   colorClass: string;
   description: string;
+  /** Luyện Hư mở rộng vô hạn tầng (§4) — không có mốc /10. */
+  unbounded?: boolean;
 }
 
 export const REALMS_CONFIG: RealmConfig[] = [
@@ -83,12 +85,14 @@ export const REALMS_CONFIG: RealmConfig[] = [
     baseDefBonus: 1250,
     colorClass: 'text-rose-300',
     description: 'Phản phác quy chân, luyện hóa hư không, chạm tới ngưỡng cửa Tiên Đạo.',
+    unbounded: true,
   },
 ];
 
 export interface PlayerRealmInfo {
   realm: RealmConfig;
-  layer: number; // Tầng 1..10
+  layer: number; // Tầng 1..10 (Luyện Hư: mở rộng vô hạn)
+  layerCap: number | null; // null = vô hạn (Luyện Hư)
   fullName: string;
 }
 
@@ -103,6 +107,7 @@ export function getRealmInfoForLevel(level: number): PlayerRealmInfo {
   return {
     realm,
     layer,
+    layerCap: realm.unbounded ? null : 10,
     fullName: `${realm.name} • Tầng ${layer}`,
   };
 }

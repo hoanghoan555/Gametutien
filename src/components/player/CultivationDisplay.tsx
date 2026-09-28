@@ -20,7 +20,9 @@ export const CultivationDisplay: React.FC = () => {
           </h3>
         </div>
         <span className="text-xs font-mono-num text-slate-400">
-          Tầng {realmInfo.layer} / 10
+          {realmInfo.layerCap === null
+            ? `Tầng ${realmInfo.layer}`
+            : `Tầng ${realmInfo.layer} / ${realmInfo.layerCap}`}
         </span>
       </div>
 

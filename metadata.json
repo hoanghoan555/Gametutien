@@ -1,6 +1,5 @@
 {
   "name": "Vạn Đạo Tiên Đỉnh",
   "description": "Game tu tiên idle/incremental trên trình duyệt — Khai Đỉnh, thu thập pháp bảo 6 phẩm chất, đột phá cảnh giới.",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "requestFramePermissions": []
 }

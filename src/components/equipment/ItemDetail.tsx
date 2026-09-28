@@ -4,6 +4,7 @@ import { EQUIPMENT_CONFIG } from '../../data/equipment';
 import { RARITY_CONFIG } from '../../data/rarities';
 import { useGameStore } from '../../stores/gameStore';
 import { getDismantleReward } from '../../systems/equipment';
+import { getPowerDeltaIfEquipped } from '../../systems/progression';
 import { formatExactNumber } from '../../utils/number';
 import { EquipmentIcon } from '../common/EquipmentIcon';
 import { Modal } from '../common/Modal';
@@ -25,9 +26,7 @@ export const ItemDetail: React.FC = () => {
   const slotCfg = EQUIPMENT_CONFIG[selectedItem.type];
   const equippedInSlot = player.equipment[selectedItem.type];
   const isCurrentlyEquipped = equippedInSlot?.id === selectedItem.id;
-  const powerDelta = equippedInSlot
-    ? selectedItem.power - equippedInSlot.power
-    : selectedItem.power;
+  const powerDelta = getPowerDeltaIfEquipped(player, selectedItem);
   const dismantleReward = getDismantleReward(selectedItem);
 
   return (

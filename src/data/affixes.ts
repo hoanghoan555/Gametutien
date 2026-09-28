@@ -7,7 +7,6 @@ export interface AffixConfig {
   maxBase: number;
   levelScaling: number;
   isPercent: boolean;
-  powerWeight: number;
 }
 
 export const AFFIX_CONFIGS: AffixConfig[] = [
@@ -18,7 +17,6 @@ export const AFFIX_CONFIGS: AffixConfig[] = [
     maxBase: 9,
     levelScaling: 0.15,
     isPercent: true,
-    powerWeight: 18,
   },
   {
     type: 'HP_PERCENT',
@@ -27,7 +25,6 @@ export const AFFIX_CONFIGS: AffixConfig[] = [
     maxBase: 10,
     levelScaling: 0.15,
     isPercent: true,
-    powerWeight: 14,
   },
   {
     type: 'DEF_PERCENT',
@@ -36,7 +33,6 @@ export const AFFIX_CONFIGS: AffixConfig[] = [
     maxBase: 9,
     levelScaling: 0.15,
     isPercent: true,
-    powerWeight: 15,
   },
   {
     type: 'CRIT_RATE',
@@ -45,7 +41,6 @@ export const AFFIX_CONFIGS: AffixConfig[] = [
     maxBase: 5,
     levelScaling: 0.08,
     isPercent: true,
-    powerWeight: 25,
   },
   {
     type: 'CRIT_DAMAGE',
@@ -54,7 +49,6 @@ export const AFFIX_CONFIGS: AffixConfig[] = [
     maxBase: 18,
     levelScaling: 0.25,
     isPercent: true,
-    powerWeight: 12,
   },
   {
     type: 'ATTACK_SPEED',
@@ -63,7 +57,6 @@ export const AFFIX_CONFIGS: AffixConfig[] = [
     maxBase: 7,
     levelScaling: 0.1,
     isPercent: true,
-    powerWeight: 20,
   },
   {
     type: 'CULTIVATION_RATE',
@@ -72,7 +65,6 @@ export const AFFIX_CONFIGS: AffixConfig[] = [
     maxBase: 10,
     levelScaling: 0.12,
     isPercent: true,
-    powerWeight: 22,
   },
   {
     type: 'TOWER_EXP',
@@ -81,7 +73,6 @@ export const AFFIX_CONFIGS: AffixConfig[] = [
     maxBase: 12,
     levelScaling: 0.18,
     isPercent: true,
-    powerWeight: 24,
   },
   {
     type: 'LOOT_RATE',
@@ -90,6 +81,5 @@ export const AFFIX_CONFIGS: AffixConfig[] = [
     maxBase: 10,
     levelScaling: 0.12,
     isPercent: true,
-    powerWeight: 22,
   },
 ];

@@ -127,10 +127,11 @@ Vòng phản hồi bắt buộc phải được kiểm soát bằng soft cap (§
 ## 11. LUỒNG NHẬN TRANG BỊ (ACQUISITION PIPELINE)
 Khi sinh 1 trang bị mới:
 1. Nếu `autoEquip` BẬT và trang bị mới làm **tổng Power tăng** (§12) → mặc vào; trang bị cũ bị đẩy ra → xử lý theo nhánh 2.
-2. Trang bị bị đẩy ra: nếu auto-dismantle hợp lệ (§14) → phân giải; nếu túi còn chỗ → vào túi; nếu túi đầy → phân giải (trừ Tiên Phẩm); nếu là Tiên Phẩm → **rơi mất (silent)** — hành vi tạm thời, xem Phụ lục B.
+2. Trang bị bị đẩy ra: nếu auto-dismantle hợp lệ (§14) → phân giải; nếu túi còn chỗ → vào túi; nếu túi đầy → phân giải (trừ Tiên Phẩm — xử theo nhánh 6).
 3. Nếu không auto-equip: nếu auto-dismantle hợp lệ → phân giải.
 4. Nếu túi còn chỗ → thêm vào túi (đầu danh sách).
-5. Nếu túi đầy (100) và `autoDismantle` BẬT → phân giải trang bị mới (trừ Tiên Phẩm). Nếu không → trang bị mới rơi mất.
+5. Nếu túi đầy (100) và `autoDismantle` BẬT → phân giải trang bị mới (trừ Tiên Phẩm). Nếu không → trang bị mới rơi mất (trừ Tiên Phẩm — xử theo nhánh 6).
+6. **Rule 14b (v1.2) — Tiên Phẩm bất diệt**: trang bị Đỏ (mới rơi hoặc bị đẩy ra) **không bao giờ rơi mất**. Nếu túi đầy: đẩy món yếu nhất KHÔNG phải Đỏ ra (ưu tiên phẩm chất thấp, cùng phẩm chất thì `item.power` thấp hơn), phân giải nó (§15) để lấy chỗ rồi thêm Đỏ vào. Nhánh không thể chạm tới: túi đầy 100 Tiên Phẩm.
 
 ## 12. AUTO EQUIP (v1.1 — dùng Power thật)
 - Điều kiện: `settings.autoEquip` BẬT **và** (`ô đang trống` **hoặc** `Power(tổng) sau khi thay > Power(tổng) hiện tại`).
@@ -146,7 +147,7 @@ Khi sinh 1 trang bị mới:
 
 ## 14. AUTO DISMANTLE & TIÊN PHẨM BẤT DIỆT
 - Điều kiện hợp lệ: `settings.autoDismantle` BẬT **và** phẩm chất ≤ `settings.autoDismantleMaxRarity` (mặc định: Linh) **và** không phải Đỏ.
-- **Tiên Phẩm (Đỏ) KHÔNG BAO GIỜ bị phân giải tự động** (kể cả khi túi đầy) — luật bất biến.
+- **Tiên Phẩm (Đỏ) KHÔNG BAO GIỜ bị phân giải tự động / rơi mất** (kể cả khi túi đầy — §11.6) — luật bất biến.
 
 ## 15. NGUYÊN LIỆU PHÂN GIẢI
 - `levelFactor = max(1, floor(1 + item.level × 0.15))`; thưởng = `base[phẩm chất] × levelFactor`.
@@ -190,7 +191,7 @@ affixMult = 1 + Σ(value/100 × 0.85)
 item.power = max(10, floor((baseTotal × affixMult + hệ_số × L × 2) × specialBonus))
 specialBonus: Đỏ 1.18 · Cam 1.08 · còn lại 1.0
 ```
-⚠ `item.power` dùng trọng số khác Power nhân vật — chỉ để hiển thị; mọi quyết định gameplay dùng Power thật (§12).
+⚠ `item.power` dùng trọng số khác Power nhân vật — chỉ là điểm hiển thị của trang bị; mọi quyết định gameplay dùng Power thật (§12). Từ v1.2, UI (ItemCard/ItemDetail) hiển thị delta "+Chiến Lực" bằng **Power thật** qua `getPowerDeltaIfEquipped` — khớp đúng mức tăng khi trang bị.
 
 ## 18. CỐNG HIẾN ĐỈNH (ĐỈNH EXP MỖI HÀNH ĐỘNG)
 ```
@@ -219,7 +220,7 @@ cultivationExp += playerExpGain; lên cấp khi đủ expToNext(L) = floor(100 �
 ## 21. TIẾN TRÌNH OFFLINE (BẾ QUAN) — v1.1
 - Điều kiện kích hoạt: `player.autoCultivation` BẬT và rời game ≥ **15 giây**.
 - Thời gian tính thưởng: `min(8 giờ, thời gian rời thực tế)`.
-- Số hành động: `floor(thời_gian × cultivationRate)`;
+- Mô phỏng **từng tick 1 giây** giống vòng lặp online (§30): mỗi tick dùng `cultivationRate` hiện hành (có thể đổi giữa chừng do auto-equip) — nhờ vậy offline khớp tuyệt đối với chạy online.
   - **Mô phỏng CHÍNH XÁC toàn bộ hành động** (tối đa 1.200.000 — phủ trọn 8 giờ ở tốc độ tối đa ~40/s): đủ loot, auto-equip, auto-dismantle, nguyên liệu.
   - Nếu vượt trần (không thể xảy ra với cấu hình hiện tại): ngoại suy EXP + tiến độ loot theo tốc độ cuối (không sinh thêm vật phẩm).
 - Kết quả trả về: `itemsGenerated` = 40 món tiêu biểu (UI hiển thị 8) + `itemsGeneratedTotal` = tổng số thực nhận.
@@ -271,20 +272,23 @@ scripts/
   simulate.ts # harness mô phỏng headless (npm run sim) — §29
 ```
 - Nguyên tắc: mọi công thức nằm trong `systems/` (hàm thuần, dễ test/mô phỏng); UI không chứa công thức.
+- Store (v1.2): mọi thay đổi state đi qua `commit*` đồng bộ trên `stateRef` — updater thuần, side effect (toast/âm thanh) đặt ngoài; loại bỏ race giữa snapshot và `setState`.
 
 ## 28. HIỆU NĂNG & GIỚI HẠN CÓ CHỦ ĐÍCH
 - Tốc độ tu luyện bị soft cap ~40 hành động/giây → tick 1s xử lý tối đa ~40 hành động + ~0.6 trang bị/giây: an toàn cho trình duyệt.
-- Offline mô phỏng tối đa ~1.15M hành động khi mở game (đo ~0.5 giây trên Node; trình duyệt yếu có thể 1–2 giây) — ứng viên chuyển sang Worker ở Giai đoạn 4.
+- Offline mô phỏng tối đa ~1.15M hành động khi mở game (đo ~0.5 giây trên Node) — chỉ cân nhắc Web Worker nếu thực tế thấy giật trên máy yếu.
 - Danh sách trang bị trả về UI bị cắt còn 40 để tránh DOM/memory phình.
 
 ## 29. KIỂM THỬ & BẤT BIẾN (`npm run sim`)
 - Lệnh: `npm run sim` (đầy đủ) hoặc `npm run sim -- --quick`; tùy chọn `--hours`, `--actions`, `--rolls`, `--samples`.
 - Kiểm tra tự động:
-  1. Bất biến vòng lặp: `item.level = tower.level` · lootProgress ∈ [0,100) · **Power không bao giờ giảm sau auto-equip** · stats/power khớp recalc.
+  1. Bất biến vòng lặp: `item.level = tower.level` · lootProgress ∈ [0,100) · **Power không bao giờ giảm sau auto-equip** · túi ≤ 100 · **Tiên Phẩm không rơi mất** · stats/power khớp recalc.
   2. Phân bố phẩm chất 200.000 roll khớp trọng số (dung sai 3σ).
   3. Auto-equip đúng quy tắc Power thật (so khớp từng quyết định).
-  4. Offline khớp tuyệt đối với mô phỏng trực tiếp (seed RNG cố định): 60s · 1h · 8h ở tốc độ tối đa.
-  5. In bảng công thức + tiến trình 24h (mốc thời gian Lv, loot/giờ) để soi cân bằng.
+  4. UI delta Chiến Lực (`getPowerDeltaIfEquipped`) khớp engine + Rule 14b (loot Đỏ / trang bị Đỏ bị đẩy ra khi túi đầy).
+  5. Offline khớp tuyệt đối với mô phỏng trực tiếp (seed RNG cố định): 60s · 1h · 8h ở tốc độ tối đa.
+  6. Save v1: sanitize dữ liệu hỏng (NaN/thiếu trường/sai kiểu) — không reset oan save hợp lệ.
+  7. In bảng công thức + tiến trình 24h (mốc thời gian Lv, loot/giờ) để soi cân bằng.
 - Trạng thái hiện tại: **PASS toàn bộ**.
 
 ## 30. VÒNG LẶP TICK TRUNG TÂM
@@ -300,11 +304,12 @@ scripts/
   1. ✅ **Khóa GAME_DESIGN.md** (bản này).
   2. ✅ **Test vòng lặp chính** — đã dựng `npm run sim`; phát hiện & sửa 2 lỗi: auto-equip so sai thang Power; offline thiếu loot trầm trọng.
   3. ◐ **Cân bằng Lv/rarity** — đợt 1 (v1.1) đã chặn bùng nổ: §16 soft caps, §18/§20 tăng dưới tuyến tính, §21 offline chính xác. Knob tinh chỉnh: `TOWER_CONTRIBUTION_POWER_EXPONENT` (0.6 → 0.5 để chậm hơn), `..._DIVISOR`, các soft cap. Số liệu tham chiếu: Phụ lục A.
-  4. ⏳ **Tối ưu code/UI** — danh sách ở Phụ lục B.
+  4. ◐ **Tối ưu code/UI** — v1.2 (TASK 002B) đã dọn xong Phụ lục B: store thuần/commit đồng bộ, UI delta Power thật, Tầng Luyện Hư, Rule 14b, mã chết/dependency. Còn lại: chỉ cân nhắc Web Worker offline (§28) nếu thấy giật.
   5. ⏳ **Multiplayer** — xem §32.
 - **Changelog**:
   - `v1.0` — Hợp nhất toàn bộ luật/công thức đang chạy vào một tài liệu khóa; chuẩn hóa số mục khớp comment `Section N`.
   - `v1.1` — Cân bằng đợt 1 + sửa lỗi vòng lặp: (a) auto-equip dùng Power thật; (b) Đỉnh EXP tăng `power^0.6`; (c) Tu Luyện EXP tăng `power^0.6` + yếu tố cấp `L^0.75`; (d) soft cap tốc độ tu luyện/%cống hiến/%loot; (e) offline mô phỏng chính xác thay vì lấy mẫu 600 bước.
+  - `v1.2` — Giai đoạn 4 (Tối ưu code/UI) + TASK 002B: (a) store commit đồng bộ trên `stateRef`, updater thuần, hết side effect trong updater (equip/unequip/dismantle) và race đếm phân giải hàng loạt; (b) **Rule 14b** — Tiên Phẩm không rơi mất khi túi đầy (§11.6); (c) UI delta "+Chiến Lực" = Power thật; (d) sửa hiển thị Tầng ở Luyện Hư (bỏ "/ 10"); (e) dọn mã chết/dependency AI Studio, hết cảnh báo Vite `__dirname`; (f) toast sống đúng 2600ms theo §30 (bỏ bộ lọc tick dọn quá sớm); (g) đồng bộ tài liệu §21/§29, thêm test sim 3b/3c.
 
 ## 32. MULTIPLAYER (DEFERRED — NGOÀI PHẠM VI MVP)
 - Chỉ triển khai sau khi xong Giai đoạn 4; không được đụng vào cấu trúc save v1 nếu chưa có migration.
@@ -313,21 +318,21 @@ scripts/
 
 ---
 
-## Phụ lục A — BASELINE SỐ LIỆU (đo bằng `npm run sim`, 2026-09-27)
+## Phụ lục A — BASELINE SỐ LIỆU (đo lại bằng `npm run sim`, v1.2 — 2026-09-28)
 Bối cảnh: save mới, auto-cultivate liên tục, auto-equip + auto-dismantle (≤ Linh).
 
 **Mốc tiến trình (1 trong các lần chạy, dao động theo RNG):**
 
 | Mốc | Thời gian |
 |------|-----------|
-| Đỉnh Lv.10 | ~12 phút 38 giây |
-| Đỉnh Lv.20 | ~44 phút |
-| Đỉnh Lv.30 | ~1 giờ 18 phút |
-| Đỉnh Lv.50 | ~2 giờ 14 phút |
-| Đỉnh Lv.75 | ~3 giờ 43 phút |
-| Đỉnh Lv.100 | ~4 giờ 59 phút |
+| Đỉnh Lv.10 | ~13 phút 17 giây |
+| Đỉnh Lv.20 | ~41 phút |
+| Đỉnh Lv.30 | ~1 giờ 12 phút |
+| Đỉnh Lv.50 | ~2 giờ 10 phút |
+| Đỉnh Lv.75 | ~3 giờ 42 phút |
+| Đỉnh Lv.100 | ~5 giờ 21 phút |
 
-**Sau 24 giờ auto:** Đỉnh Lv.474 · Nhân vật Lv.1.413 · Power ~5,5 triệu · ~34.900 trang bị · tốc độ 23,4 hành động/giây · loot rate +52% · Đỉnh bonus +40% · túi 100/100.
+**Sau 24 giờ auto:** Đỉnh Lv.450 · Nhân vật Lv.1.329 · Power ~5,28 triệu · 32.525 trang bị · tốc độ 25,5 hành động/giây · loot rate +67,7% · Đỉnh bonus +92,1% · túi 100/100 · Tiên Phẩm 32/32 giữ nguyên (Rule 14b).
 (Nhịp độ sau giờ thứ 5: ổn định ~20–25 cấp Đỉnh/giờ; không còn bùng nổ.)
 
 **Phân bố phẩm chất 200.000 roll:** khớp cấu hình trong dung sai 3σ (xem output `npm run sim`).
@@ -336,12 +341,14 @@ Bối cảnh: save mới, auto-cultivate liên tục, auto-equip + auto-dismantl
 - Trước: Đỉnh Lv.7.937 · Nhân vật Lv.9.596 · tốc độ 2.330 hành động/giây (mất kiểm soát).
 - Sau: Đỉnh Lv.~340–380 · Nhân vật Lv.~1.000 · tốc độ ~20–24 hành động/giây (ổn định).
 
-## Phụ lục B — TỒN ĐỌNG KỸ THUẬT ĐÃ BIẾT (dành cho Giai đoạn 4)
-1. **Hiển thị `item.power` lệch thang Power thật** (~2–3% cặp xếp hạng lệch; đo 1.042/44.850): ItemCard/ItemDetail hiển thị "+Chiến Lực" theo item.power nên có thể khác mức tăng Power thật. Đề xuất: đồng bộ trọng số §17 hoặc hiển thị delta thật bằng `calculateStatsAndPower`.
-2. **Tầng cảnh giới > 10 hiển thị sai** ("Tầng X / 10" khi X > 10, gặp ở Luyện Hư tầng cao). Sửa UI ở Giai đoạn 4.
-3. **Túi đầy + Tiên Phẩm**: trang bị Đỏ có thể bị "rơi mất" khi túi đầy (nhánh 2/5 §11) — cần quyết định luật (gợi ý: luôn thêm vào túi bằng cách đẩy món yếu nhất ra).
-4. `dismantleBulkByRarity` trả về giá trị 0 cho caller (đếm trong updater) và có side-effect (toast) trong updater — StrictMode DEV có thể nhân đôi toast. Dọn ở Giai đoạn 4.
-5. Trường/mã chết: `AFFIX_CONFIGS.powerWeight`, `randomInt()`, tham số `isFloatStat` trong `rollStatValue`.
-6. Dependency không dùng: `@google/genai`, `express`, `dotenv`, `.env.example` (di sản AI Studio); tên package "react-example".
-7. `vite.config.ts` dùng `__dirname` (Vite 8 cảnh báo) → chuyển `import.meta.dirname`.
-8. `metadata.json` khai báo năng lực Gemini API nhưng không có server code — dọn khi chốt phạm vi.
+## Phụ lục B — TỒN ĐỌNG KỸ THUẬT (đã dọn ở Giai đoạn 4 — v1.2, 2026-09-28)
+1. ✅ `item.power` vs Power thật: ItemCard/ItemDetail hiển thị delta bằng Power thật (`getPowerDeltaIfEquipped`); `item.power` giữ vai trò điểm hiển thị (§17). Test sim 3b.
+2. ✅ Tầng cảnh giới > 10: Luyện Hư hiển thị "Tầng X" (bỏ "/ 10" — `layerCap = null`).
+3. ✅ Túi đầy + Tiên Phẩm: Rule 14b (§11.6) — Đỏ không bao giờ rơi mất. Test sim 3c.
+4. ✅ Updater thuần (TASK 002B): toast/side effect ra khỏi updater; mọi mutation qua `commit*` đồng bộ; `dismantleBulkByRarity` trả về đúng số đã áp dụng.
+5. ✅ Mã chết: `AFFIX_CONFIGS.powerWeight`, `randomInt()`, tham số `isFloatStat` — đã xóa.
+6. ✅ Dependency AI Studio: gỡ `@google/genai`, `express`, `dotenv`, `@types/express`, `.env.example`; package đổi tên `vandao-tien-dinh`.
+7. ✅ `vite.config.ts`: dùng `import.meta.dirname` (hết cảnh báo Vite 8); script `clean` chạy được trên Windows.
+8. ✅ `metadata.json`: bỏ khai báo Gemini API.
+
+**Còn lại (không chặn)**: Web Worker cho mô phỏng offline — chỉ làm nếu thực tế thấy giật khi mở game (§28).

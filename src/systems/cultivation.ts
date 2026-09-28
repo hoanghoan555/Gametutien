@@ -1,6 +1,7 @@
 import { EQUIPMENT_SLOTS_LIST } from '../data/equipment';
+import { RARITY_CONFIG } from '../data/rarities';
 import { SettingsState } from '../types/game';
-import { Item } from '../types/item';
+import { DismantleMaterials, Item } from '../types/item';
 import { PlayerState } from '../types/player';
 import { TowerState } from '../types/tower';
 import {
@@ -49,6 +50,46 @@ export function hasSpecialEffect(player: PlayerState, effectId: string): boolean
     }
   }
   return false;
+}
+
+/**
+ * Rule 14b (v1.2): Tiên Phẩm không bao giờ rơi mất. Khi túi đầy, nhường chỗ bằng cách
+ * đẩy món yếu nhất KHÔNG phải Đỏ ra và phân giải nó (nhận nguyên liệu §15).
+ * Trả về null nếu túi chỉ toàn Tiên Phẩm (hết chỗ nhường — nhánh không thể chạm tới).
+ */
+function evictWeakestNonRed(
+  inventory: Item[],
+  materials: DismantleMaterials
+): { inventory: Item[]; materials: DismantleMaterials } | null {
+  let weakestIndex = -1;
+
+  for (let i = 0; i < inventory.length; i += 1) {
+    const item = inventory[i];
+    if (item.rarity === 'red') continue;
+    if (weakestIndex === -1) {
+      weakestIndex = i;
+      continue;
+    }
+
+    const weakest = inventory[weakestIndex];
+    const itemOrder = RARITY_CONFIG[item.rarity].order;
+    const weakestOrder = RARITY_CONFIG[weakest.rarity].order;
+    if (
+      itemOrder < weakestOrder ||
+      (itemOrder === weakestOrder && item.power < weakest.power)
+    ) {
+      weakestIndex = i;
+    }
+  }
+
+  if (weakestIndex === -1) return null;
+
+  const nextInventory = [...inventory];
+  const [evicted] = nextInventory.splice(weakestIndex, 1);
+  return {
+    inventory: nextInventory,
+    materials: addMaterials(materials, getDismantleReward(evicted)),
+  };
 }
 
 /**
@@ -160,14 +201,18 @@ export function processItemAcquisition(
         );
       } else if (updatedInventory.length < MAX_INVENTORY_SLOTS) {
         updatedInventory = [currentEquipped, ...updatedInventory];
-      } else {
-        // Inventory full fallback: dismantle old item if non-red
-        if (currentEquipped.rarity !== 'red') {
-          updatedMaterials = addMaterials(
-            updatedMaterials,
-            getDismantleReward(currentEquipped)
-          );
+      } else if (currentEquipped.rarity === 'red') {
+        // Rule 14b (v1.2): trang bị Đỏ bị đẩy ra không bao giờ rơi mất khi túi đầy.
+        const freed = evictWeakestNonRed(updatedInventory, updatedMaterials);
+        if (freed) {
+          updatedInventory = [currentEquipped, ...freed.inventory];
+          updatedMaterials = freed.materials;
         }
+      } else {
+        updatedMaterials = addMaterials(
+          updatedMaterials,
+          getDismantleReward(currentEquipped)
+        );
       }
     }
 
@@ -214,7 +259,23 @@ export function processItemAcquisition(
     };
   }
 
-  // Inventory is full (100 slots): try to dismantle weakest non-red item if autoDismantle is enabled
+  // Inventory is full (100 slots): Tiên Phẩm luôn được giữ — đẩy món yếu nhất ra (Rule 14b).
+  if (newItem.rarity === 'red') {
+    const freed = evictWeakestNonRed(player.inventory, player.materials);
+    if (freed) {
+      return {
+        player: {
+          ...player,
+          inventory: [newItem, ...freed.inventory],
+          materials: freed.materials,
+        },
+        autoEquipped: false,
+        dismantled: false,
+        powerDelta: 0,
+      };
+    }
+  }
+
   if (settings.autoDismantle && newItem.rarity !== 'red') {
     return {
       player: {

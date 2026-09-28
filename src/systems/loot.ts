@@ -133,12 +133,9 @@ export function generateLootItem(
   const basePower = Math.floor(10 * Math.pow(itemLevel, 1.35));
   const dist = EQUIPMENT_CONFIG[type].statDistribution;
 
-  const rollStatValue = (weight: number, isFloatStat = false): number => {
+  const rollStatValue = (weight: number): number => {
     const variation = randomFloat(0.95, 1.05);
     const raw = basePower * weight * rarityMultiplier * variation;
-    if (isFloatStat) {
-      return Math.max(0.5, Math.round(raw * 0.15 * 10) / 10);
-    }
     return Math.max(1, Math.floor(raw));
   };
 

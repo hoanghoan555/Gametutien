@@ -9,22 +9,20 @@ import { RarityBadge } from '../common/RarityBadge';
 
 interface ItemCardProps {
   item: Item;
-  equippedItemInSlot?: Item | null;
+  /** Delta Power THẬT nếu trang bị món này (§17) — tính sẵn bằng getPowerDeltaIfEquipped. */
+  powerDelta?: number;
   onClick: (item: Item) => void;
   compact?: boolean;
 }
 
 export const ItemCard: React.FC<ItemCardProps> = ({
   item,
-  equippedItemInSlot,
+  powerDelta,
   onClick,
   compact = false,
 }) => {
   const rarityCfg = RARITY_CONFIG[item.rarity];
   const slotCfg = EQUIPMENT_CONFIG[item.type];
-  const powerDiff = equippedItemInSlot
-    ? item.power - equippedItemInSlot.power
-    : item.power;
 
   return (
     <button
@@ -67,21 +65,21 @@ export const ItemCard: React.FC<ItemCardProps> = ({
             <span className="text-xs font-mono-num font-bold text-amber-200">
               {formatNumber(item.power)}
             </span>
-            {equippedItemInSlot?.id !== item.id && powerDiff !== 0 && (
+            {powerDelta !== undefined && powerDelta !== 0 && (
               <span
                 className={`inline-flex items-center text-[10px] font-mono-num font-semibold ${
-                  powerDiff > 0 ? 'text-emerald-400' : 'text-rose-400'
+                  powerDelta > 0 ? 'text-emerald-400' : 'text-rose-400'
                 }`}
               >
-                {powerDiff > 0 ? (
+                {powerDelta > 0 ? (
                   <>
                     <ArrowUpRight className="w-3 h-3" />+
-                    {formatExactNumber(powerDiff)}
+                    {formatExactNumber(powerDelta)}
                   </>
                 ) : (
                   <>
                     <ArrowDownRight className="w-3 h-3" />
-                    {formatExactNumber(powerDiff)}
+                    {formatExactNumber(powerDelta)}
                   </>
                 )}
               </span>
