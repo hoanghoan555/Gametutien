@@ -1,6 +1,6 @@
 # VẠN ĐẠO TIÊN ĐỈNH — MULTIPLAYER DESIGN AUDIT
 
-> **Trạng thái:** DRAFT v0.1 — tài liệu audit thiết kế, **chưa có dòng code backend nào**.
+> **Trạng thái:** v0.2 — **P5.0 ĐÃ NGHIỆM THU**: D1–D12 chốt theo khuyến nghị + 4 ràng buộc triển khai P5.1 đã khoá (mục 13). Tài liệu này là *design approved with implementation constraints* — không tự diễn giải thêm gameplay.
 > **Baseline so sánh:** commit `20e5b5e` (v1.2). Mọi thay đổi MP về sau phải đối chiếu baseline này (Phụ lục A + `npm run sim`).
 > **Bối cảnh:** Chủ dự án yêu cầu audit thiết kế theo 8 hướng trước khi code multiplayer. Ánh xạ 8 điểm → mục tài liệu ở §11.
 
@@ -199,7 +199,7 @@ POST /migration/import  { save: SaveDataV1 } → { ok, player }
 | Bước | Nội dung | Gate (điều kiện qua) |
 |------|----------|----------------------|
 | **P5.0** | Audit thiết kế (tài liệu này) | Chủ dự án chốt D1–D12 |
-| P5.1 | Gói `shared` + server skeleton (auth guest, `/sync` read-only) | `npm run sim` chạy trên shared cho cùng kết quả baseline; lint/build client không đổi |
+| P5.1 | Gói `shared` + server skeleton (auth guest, `/sync` read-only) | `npm run sim` chạy trên shared cho cùng kết quả baseline; lint/build client không đổi; **＋ 12 điều kiện gate mục 13.3** |
 | P5.2 | `/actions/cultivate` online + chống spam + loot server-side | 2 browser cùng thấy 1 Đỉnh; load test 100 CCU × 1 action/s; server chặn được client sửa rate |
 | P5.3 | Realtime + BXH cống hiến + milestone | Broadcast throttle đúng; BXH khớp `contributions` |
 | P5.4 | Migration v1 + offline claim trên server | Test save hỏng (sanitize), offline 60s/1h/8h khớp tuyệt đối test 5 §29 |
@@ -238,3 +238,59 @@ Ngoài phạm vi P5: PvP/đấu trường, chat, guild, giao dịch — giữ ng
 - Không sửa code, không đụng baseline `20e5b5e`.
 - Không sửa `GAME_DESIGN.md` vội: chờ chốt D1–D12 → cập nhật §5/§19/§22/§32 + changelog v1.3 (đúng quy trình §31).
 - Chưa chọn nhà cung cấp/deploy; chưa tạo repo backend.
+
+## 13. P5.1 — RÀNG BUỘC TRIỂN KHAI ĐÃ KHÓA (P5.0 nghiệm thu 2026-09-28)
+
+> Chủ dự án chốt D1–D12 "theo khuyến nghị" và yêu cầu 4 bổ sung dưới đây **trước khi viết server**.
+
+### 13.1 Bốn ràng buộc bắt buộc
+
+1. **Không copy nguyên xi `src/systems/*` sang server.** `loot.ts` dùng `Math.random()`, `createUniqueId()` dùng `Date.now() + Math.random()`. Phải tách abstraction `Rng` / `Clock` / `IdGenerator` (dependency injection): client giữ implementation hiện tại (mặc định, hành vi không đổi), server dùng implementation tất định/secure. **Không `Math.random()` trong đường loot authoritative.**
+2. **HMAC RNG theo từng action/roll.** `actionSeed = HMAC(serverSecret, userId | actionSeq | rngVersion)`; stream `roll[0], roll[1], …` tiêu thụ tuần tự theo đúng thứ tự draw của loot (rarity → type → stats → affix → special → id/name). Batch `seq … seq+n-1` phải cho **cùng kết quả** như xử lý từng action riêng lẻ theo đúng thứ tự.
+3. **Khóa concurrency trước `/actions/cultivate`.** Cùng user + cùng `seq` → xử lý đúng 1 lần (idempotent, trả lại ack đã cache); nhiều user cùng Global Tower → không lost update. Transaction/lock/receipt phải được thiết kế **và chứng minh** trước P5.2.
+4. **Offline semantics chính xác.** "Offline" = server không nhận action từ client (không phải server tick nền liên tục cho từng user). Lưu `lastGrantAt` + `fractionalActions`; khi claim, mô phỏng khoảng trống bằng authoritative state. Global Tower có thể đã thay đổi bởi người khác trong lúc offline → mô phỏng trên trạng thái Tower **tại thời điểm claim**. Item loot phải dùng **Tower level tại từng action mô phỏng** — không lấy một level hiện tại rồi nhân cho toàn bộ khoảng offline.
+
+### 13.2 Quyết định triển khai (khoá để audit)
+
+| # | Điểm | Chốt cho P5.1 | Lý do |
+|---|------|---------------|-------|
+| I1 | Vị trí gói "shared" | `src/shared/*` chứa contracts (Rng/Clock/Id) + logic authoritative, không React/DOM; `src/systems`/`src/data`/`src/types` đã thuần nên cả client lẫn server import trực tiếp | Tách `packages/shared` chỉ đáng làm khi tách repo backend (P5.2+); đổi bây giờ phá gate build/sim vô ích |
+| I2 | Chỉ số burst (Tiên Đạo quán Đỉnh) | Dùng **bộ đếm hành động cá nhân** (`player.cultivations`, seed theo `seq`), không dùng `tower.totalCultivations` toàn cầu | Hiệu ứng "mỗi 10 lần Khai Đỉnh" thuộc về người chơi; dùng bộ đếm chung thì nhịp burst phụ thuộc hành động người khác → đổi gameplay |
+| I3 | Base của offline sim | Trạng thái Tower **tại thời điểm claim** (đã gồm đóng góp của người khác); không hồi tố interleaving toàn cục | Không thể dựng lại thứ tự chèn toàn cục nếu không replay global action log; beta chấp nhận, ghi rõ |
+| I4 | `fractionalActions` | Persist qua các cửa sổ (chính xác hơn client v1.2 — v1.2 reset phần lẻ mỗi phiên) | Đúng ràng buộc 4; sai số < 1 hành động, không đổi balance |
+| I5 | Ngưỡng 15s của v1.2 | Bỏ khỏi đường tính toán MP (mọi khoảng trống đều được mô phỏng, trần 8h); 15s trở thành **ngưỡng hiển thị popup** phía client | 15s trong v1.2 vốn là mẹo UI chống popup vụn; MP theo ngữ nghĩa budget §3.1 — thời gian rời luôn sinh hành động |
+| I6 | Migration D6 | **Không** làm ở P5.1 (thuộc P5.4). Không đặt trần Power — phải định nghĩa rõ trước khi implement | Đúng yêu cầu chủ dự án: chưa có policy thì chưa code |
+| I7 | PG adapter | P5.1 khoá **schema + SQL recipe** (SQL đầy đủ: `server/db/schema.sql`) + store contract có test concurrency; adapter PG thật + integration test vào P5.2 khi môi trường có DB | Máy dev hiện chưa có Postgres chạy — không viết code chưa từng chạy |
+| I8 | `/actions/cultivate` | Trả `501 not_implemented` — chưa mở gameplay | Đúng gate 12 |
+
+### 13.3 Gate P5.1 (12 điều — chủ dự án chốt)
+
+1. `shared` chứa logic authoritative, không React/DOM.
+2. RNG/Clock/ID dependency-inject; không `Math.random()`/`Date.now()` trong đường authoritative.
+3. `lootProgress` per-player; model Tower của MP không sở hữu nó (D5).
+4. Global Tower update transaction-safe.
+5. `seq` idempotent + concurrent-safe.
+6. `/auth/guest` hoạt động.
+7. `/sync` read-only hoạt động.
+8. Migration v1 không mở rộng tùy tiện ngoài policy D6.
+9. Client solo hiện tại vẫn build/lint bình thường.
+10. `npm run sim` baseline PASS y hệt, không đổi balance.
+11. Có test chứng minh batch N actions = N single actions (authoritative).
+12. Chưa triển khai `/actions/cultivate` production gameplay ở P5.1.
+
+### 13.4 SQL recipe (Postgres — khoá trước P5.2)
+
+Mọi batch hành động chạy trong **một transaction**, thứ tự bắt buộc:
+
+```sql
+BEGIN;
+  -- 1) Idempotency barrier: unique (user_id, seq). 0 row → đã xử lý → đọc ack cũ, COMMIT sớm.
+  INSERT INTO action_log (user_id, seq, n, ...) VALUES (...) ON CONFLICT (user_id, seq) DO NOTHING;
+  -- 2) Khóa duy nhất cho Global Tower: serialize mọi writer (beta 1 Đỉnh → mọi batch đều chạm Tower).
+  SELECT * FROM towers WHERE id = 'global' FOR UPDATE;
+  -- 3) Đọc player + settings, chạy shared authority (RNG HMAC), ghi players/towers/contributions.
+  -- 4) COMMIT — không có merge phía client, không lost update.
+COMMIT;
+```
+
+DDL đầy đủ: `server/db/schema.sql` (nguồn: bảng §8.1 — `players` có `loot_progress`/`loot_threshold` per-user theo D5).
