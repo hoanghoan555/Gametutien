@@ -1,4 +1,5 @@
 import { OfflineRewardSummary, SettingsState } from '../types/game';
+import { Item } from '../types/item';
 import { PlayerState } from '../types/player';
 import { TowerState } from '../types/tower';
 import { calculateSingleActionGains, cultivateTowerSystem } from './cultivation';
@@ -8,18 +9,26 @@ import { addTowerExp } from './tower';
 export const MAX_OFFLINE_SECONDS = 8 * 3600; // 8 giờ
 export const MIN_OFFLINE_SECONDS_FOR_POPUP = 15; // Tối thiểu 15 giây rời game mới hiện popup
 
-/**
- * Section 21 — Cân bằng v1.1: mô phỏng CHÍNH XÁC toàn bộ hành động offline
- * (thay vì lấy mẫu 600 bước như v1.0 khiến offline thiếu loot/EXP trầm trọng).
- *
- * - Trần mô phỏng chính xác: 1,200,000 hành động — phủ trọn 8 giờ offline ở tốc độ tối đa
- *   (~40 hành động/giây sau soft cap ≈ 1.15M hành động), nên thực tế luôn mô phỏng chính xác.
- * - Phần vượt trần được ngoại suy EXP + tiến độ loot theo tốc độ cuối (không sinh thêm vật phẩm).
- * - Danh sách vật phẩm trả về UI được rút gọn còn 40 món tiêu biểu; tổng số nằm ở itemsGeneratedTotal.
- */
-const MAX_EXACT_ACTIONS = 1_200_000;
+// Trần mô phỏng chính xác: phủ trọn 8 giờ offline ở tốc độ tối đa ~40 hành động/giây.
+export const MAX_EXACT_ACTIONS = 1_200_000;
 const REPORTED_ITEMS_LIMIT = 40;
+const TICK_SECONDS = 1; // §30: vòng lặp tick trung tâm chạy mỗi 1 giây
 
+/**
+ * TASK 002A — Bug #2: mô phỏng offline theo TỪNG TICK 1 GIÂY (đúng ngữ nghĩa vòng lặp
+ * trung tâm §30) thay vì chốt cứng số hành động theo cultivationRate tại thời điểm bắt đầu.
+ *
+ * Trước đây `totalActions = elapsed × rate(lúc rời)` khiến kết quả offline lệch với chạy online
+ * cùng khoảng thời gian khi tốc độ tu luyện thay đổi giữa chừng (auto-equip trang bị có
+ * cultivationRate). Nay mỗi tick lấy rate HIỆN TẠI:
+ *   actions = floor(fractional + currentRate) — giống hệt tick online, độ dư được giữ nguyên.
+ *
+ * - Mô phỏng chính xác tối đa MAX_EXACT_ACTIONS hành động.
+ * - Phần thời gian vượt trần (không thể xảy ra với cấu hình hiện tại): ngoại suy EXP +
+ *   tiến độ loot theo tốc độ cuối, KHÔNG sinh thêm vật phẩm (tránh item ảo).
+ * - `itemsGenerated` chỉ giữ tối đa REPORTED_ITEMS_LIMIT món cuối để hiển thị UI;
+ *   tổng số thực nằm ở `itemsGeneratedTotal`.
+ */
 export function calculateOfflineProgression(
   player: PlayerState,
   tower: TowerState,
@@ -41,45 +50,86 @@ export function calculateOfflineProgression(
   }
 
   const elapsedSeconds = Math.min(MAX_OFFLINE_SECONDS, Math.max(0, rawElapsedSeconds));
-  const totalActions = Math.max(1, Math.floor(elapsedSeconds * player.stats.cultivationRate));
-  const exactActions = Math.min(totalActions, MAX_EXACT_ACTIONS);
 
-  const result = cultivateTowerSystem(player, tower, settings, exactActions);
-  let currentPlayer = result.player;
-  let currentTower = result.tower;
-  let playerExpGained = result.playerExpGain;
-  let towerExpGained = result.towerExpGain;
-  let towerLevelsGained = result.towerLevelsGained;
+  let currentPlayer = player;
+  let currentTower = tower;
+  let playerExpGained = 0;
+  let towerExpGained = 0;
+  let towerLevelsGained = 0;
+  let totalActions = 0;
+  let simulatedActions = 0;
+  let fractionalActions = 0;
+  let itemsGeneratedTotal = 0;
+  let autoEquippedCount = 0;
+  let dismantledCount = 0;
+  const recentItems: Item[] = [];
+  let remainingSeconds = elapsedSeconds;
 
-  const remainingActions = totalActions - exactActions;
-  if (remainingActions > 0) {
+  while (remainingSeconds >= TICK_SECONDS && simulatedActions < MAX_EXACT_ACTIONS) {
+    const tickBudget = fractionalActions + currentPlayer.stats.cultivationRate;
+    let actionsThisTick = Math.floor(tickBudget);
+    fractionalActions = tickBudget - actionsThisTick;
+
+    // Chạm trần ngay giữa tick: cắt phần dư — phần này được ngoại suy ở bước sau.
+    if (actionsThisTick > MAX_EXACT_ACTIONS - simulatedActions) {
+      actionsThisTick = MAX_EXACT_ACTIONS - simulatedActions;
+    }
+
+    if (actionsThisTick > 0) {
+      const result = cultivateTowerSystem(currentPlayer, currentTower, settings, actionsThisTick);
+      currentPlayer = result.player;
+      currentTower = result.tower;
+      towerExpGained += result.towerExpGain;
+      playerExpGained += result.playerExpGain;
+      towerLevelsGained += result.towerLevelsGained;
+
+      for (const generated of result.generatedItems) {
+        itemsGeneratedTotal += 1;
+        if (generated.autoEquipped) autoEquippedCount += 1;
+        else if (generated.dismantled) dismantledCount += 1;
+        recentItems.push(generated.item);
+        if (recentItems.length > REPORTED_ITEMS_LIMIT) recentItems.shift();
+      }
+    }
+
+    simulatedActions += actionsThisTick;
+    totalActions += actionsThisTick;
+    remainingSeconds -= TICK_SECONDS;
+  }
+
+  if (remainingSeconds > 0) {
     const gains = calculateSingleActionGains(
       currentPlayer,
       currentTower.totalCultivations + 1
     );
-    const extraTowerExp = gains.towerExpGain * remainingActions;
-    const extraPlayerExp = gains.playerExpGain * remainingActions;
-    const extraLootProgress = gains.lootProgressGain * remainingActions;
-
-    const towerRes = addTowerExp(currentTower, extraTowerExp);
-    const playerRes = addPlayerCultivationExp(
-      { ...currentPlayer, contribution: currentPlayer.contribution + extraTowerExp },
-      extraPlayerExp
+    const extrapolatedActions = Math.floor(
+      fractionalActions + remainingSeconds * currentPlayer.stats.cultivationRate
     );
 
-    currentTower = {
-      ...towerRes.tower,
-      totalCultivations: currentTower.totalCultivations + remainingActions,
-      lootProgress:
-        Math.round((towerRes.tower.lootProgress + extraLootProgress) * 100) / 100,
-    };
-    currentPlayer = playerRes.player;
-    towerExpGained += extraTowerExp;
-    playerExpGained += extraPlayerExp;
-    towerLevelsGained += towerRes.levelsGained;
-  }
+    if (extrapolatedActions > 0) {
+      const extraTowerExp = gains.towerExpGain * extrapolatedActions;
+      const extraPlayerExp = gains.playerExpGain * extrapolatedActions;
+      const extraLootProgress = gains.lootProgressGain * extrapolatedActions;
 
-  const items = result.generatedItems;
+      const towerRes = addTowerExp(currentTower, extraTowerExp);
+      const playerRes = addPlayerCultivationExp(
+        { ...currentPlayer, contribution: currentPlayer.contribution + extraTowerExp },
+        extraPlayerExp
+      );
+
+      currentTower = {
+        ...towerRes.tower,
+        totalCultivations: currentTower.totalCultivations + extrapolatedActions,
+        lootProgress:
+          Math.round((towerRes.tower.lootProgress + extraLootProgress) * 100) / 100,
+      };
+      currentPlayer = playerRes.player;
+      towerExpGained += extraTowerExp;
+      playerExpGained += extraPlayerExp;
+      towerLevelsGained += towerRes.levelsGained;
+      totalActions += extrapolatedActions;
+    }
+  }
 
   return {
     player: currentPlayer,
@@ -90,10 +140,10 @@ export function calculateOfflineProgression(
       playerExpGained,
       towerExpGained,
       towerLevelsGained,
-      itemsGenerated: items.slice(-REPORTED_ITEMS_LIMIT).map((g) => g.item),
-      itemsGeneratedTotal: items.length,
-      autoEquippedCount: items.filter((g) => g.autoEquipped).length,
-      dismantledCount: items.filter((g) => g.dismantled).length,
+      itemsGenerated: recentItems,
+      itemsGeneratedTotal,
+      autoEquippedCount,
+      dismantledCount,
     },
   };
 }

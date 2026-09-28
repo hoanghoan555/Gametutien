@@ -14,6 +14,7 @@
  */
 
 import process from 'node:process';
+import { EQUIPMENT_SLOTS_LIST } from '../src/data/equipment';
 import { LOOT_DROP_TABLE } from '../src/data/lootTables';
 import { RARITY_CONFIG, RARITY_ORDER } from '../src/data/rarities';
 import {
@@ -26,7 +27,11 @@ import {
   MAX_INVENTORY_SLOTS,
 } from '../src/systems/equipment';
 import { generateLootItem, rollRarity } from '../src/systems/loot';
-import { calculateOfflineProgression } from '../src/systems/offline';
+import {
+  calculateOfflineProgression,
+  MAX_EXACT_ACTIONS,
+  MAX_OFFLINE_SECONDS,
+} from '../src/systems/offline';
 import {
   calculatePlayerExpToNext,
   calculateStatsAndPower,
@@ -36,11 +41,12 @@ import {
   calculateTowerExpToNextLevel,
   createInitialTowerState,
 } from '../src/systems/tower';
-import { SettingsState } from '../src/types/game';
+import { OfflineRewardSummary, SettingsState } from '../src/types/game';
 import { EquipmentType, Item, Rarity } from '../src/types/item';
 import { PlayerState } from '../src/types/player';
 import { TowerState } from '../src/types/tower';
 import { formatDuration } from '../src/utils/number';
+import { sanitizeSaveData } from '../src/utils/saveValidation';
 
 const SETTINGS: SettingsState = {
   autoEquip: true,
@@ -466,12 +472,179 @@ function printGrowth(report: GrowthReport): void {
 }
 
 // ---------------------------------------------------------------------------
-// 5. Offline: mô phỏng trực tiếp vs calculateOfflineProgression
+// 4. Offline (TASK 002A): tick trực tiếp 1s vs calculateOfflineProgression
 // ---------------------------------------------------------------------------
 
-// ---------------------------------------------------------------------------
-// 4. Offline: mô phỏng trực tiếp vs calculateOfflineProgression
-// ---------------------------------------------------------------------------
+interface TickRunResult {
+  player: PlayerState;
+  tower: TowerState;
+  actions: number;
+  towerExpGained: number;
+  playerExpGained: number;
+  towerLevelsGained: number;
+  itemsGeneratedTotal: number;
+  autoEquippedCount: number;
+  dismantledCount: number;
+}
+
+/** Bản sao trung thực của vòng lặp tick online (§30): mỗi giây cộng cultivationRate hiện tại. */
+function simulateOnlineTicks(
+  player: PlayerState,
+  tower: TowerState,
+  settings: SettingsState,
+  seconds: number,
+  maxActions = Number.MAX_SAFE_INTEGER
+): TickRunResult {
+  let currentPlayer = player;
+  let currentTower = tower;
+  let fractional = 0;
+  let actions = 0;
+  let towerExpGained = 0;
+  let playerExpGained = 0;
+  let towerLevelsGained = 0;
+  let itemsGeneratedTotal = 0;
+  let autoEquippedCount = 0;
+  let dismantledCount = 0;
+
+  for (let second = 0; second < seconds && actions < maxActions; second += 1) {
+    const tickBudget = fractional + currentPlayer.stats.cultivationRate;
+    let batch = Math.floor(tickBudget);
+    fractional = tickBudget - batch;
+    if (batch > maxActions - actions) batch = maxActions - actions;
+
+    if (batch > 0) {
+      const result = cultivateTowerSystem(currentPlayer, currentTower, settings, batch);
+      currentPlayer = result.player;
+      currentTower = result.tower;
+      actions += batch;
+      towerExpGained += result.towerExpGain;
+      playerExpGained += result.playerExpGain;
+      towerLevelsGained += result.towerLevelsGained;
+
+      for (const generated of result.generatedItems) {
+        itemsGeneratedTotal += 1;
+        if (generated.autoEquipped) autoEquippedCount += 1;
+        else if (generated.dismantled) dismantledCount += 1;
+      }
+    }
+  }
+
+  return {
+    player: currentPlayer,
+    tower: currentTower,
+    actions,
+    towerExpGained,
+    playerExpGained,
+    towerLevelsGained,
+    itemsGeneratedTotal,
+    autoEquippedCount,
+    dismantledCount,
+  };
+}
+
+/** Chữ ký cấu trúc của trang bị — bỏ qua `id` vì id chứa timestamp wall-clock (khác giữa 2 lần chạy). */
+function itemSignature(item: Item | null): string {
+  if (!item) return 'trống';
+  const affixes = item.affixes.map((affix) => `${affix.type}=${affix.value}`).join(',');
+  return `${item.name}|${item.type}|Lv.${item.level}|${item.rarity}|P${item.power}|${affixes}|${
+    item.specialEffect?.id ?? '-'
+  }`;
+}
+
+/** So khớp từng trường giữa kết quả offline và mô phỏng tick trực tiếp. */
+function compareOfflineWithDirect(
+  offline: { player: PlayerState; tower: TowerState; summary: OfflineRewardSummary | null },
+  direct: TickRunResult
+): string[] {
+  const failures: string[] = [];
+  const summary = offline.summary;
+  if (!summary) {
+    failures.push('Không tạo được summary offline (autoCultivation đang tắt?)');
+    return failures;
+  }
+
+  const numericPairs: Array<[string, number, number]> = [
+    ['Lv Đỉnh', offline.tower.level, direct.tower.level],
+    ['EXP Đỉnh hiện tại', offline.tower.currentExp, direct.tower.currentExp],
+    ['EXP Đỉnh cần cho Lv kế', offline.tower.expToNextLevel, direct.tower.expToNextLevel],
+    ['Tổng lần Khai Đỉnh', offline.tower.totalCultivations, direct.tower.totalCultivations],
+    ['Tiến độ loot', offline.tower.lootProgress, direct.tower.lootProgress],
+    ['Lv Nhân vật', offline.player.level, direct.player.level],
+    ['Tu Luyện EXP hiện tại', offline.player.cultivationExp, direct.player.cultivationExp],
+    ['Power', offline.player.power, direct.player.power],
+    ['Cống hiến', offline.player.contribution, direct.player.contribution],
+    ['Số trang bị trong túi', offline.player.inventory.length, direct.player.inventory.length],
+    ['actionsCount', summary.actionsCount, direct.actions],
+    ['towerExpGained', summary.towerExpGained, direct.towerExpGained],
+    ['playerExpGained', summary.playerExpGained, direct.playerExpGained],
+    ['towerLevelsGained', summary.towerLevelsGained, direct.towerLevelsGained],
+    ['itemsGeneratedTotal', summary.itemsGeneratedTotal, direct.itemsGeneratedTotal],
+    ['autoEquippedCount', summary.autoEquippedCount, direct.autoEquippedCount],
+    ['dismantledCount', summary.dismantledCount, direct.dismantledCount],
+  ];
+  for (const [label, offlineValue, directValue] of numericPairs) {
+    if (offlineValue !== directValue) {
+      failures.push(`${label} lệch: offline ${fmt(offlineValue)} vs trực tiếp ${fmt(directValue)}`);
+    }
+  }
+
+  for (const slot of EQUIPMENT_SLOTS_LIST) {
+    const offlineSignature = itemSignature(offline.player.equipment[slot]);
+    const directSignature = itemSignature(direct.player.equipment[slot]);
+    if (offlineSignature !== directSignature) {
+      failures.push(`Ô ${slot} lệch: offline ${offlineSignature} vs trực tiếp ${directSignature}`);
+    }
+  }
+
+  const offlineInventory = offline.player.inventory.map((item) => itemSignature(item)).join(' || ');
+  const directInventory = direct.player.inventory.map((item) => itemSignature(item)).join(' || ');
+  if (offlineInventory !== directInventory) {
+    failures.push('Danh sách trang bị trong túi lệch nội dung/thứ tự');
+  }
+
+  const materialKeys: Array<keyof PlayerState['materials']> = [
+    'basicMaterial',
+    'linhStone',
+    'advancedMaterial',
+    'rareMaterial',
+  ];
+  for (const key of materialKeys) {
+    if (offline.player.materials[key] !== direct.player.materials[key]) {
+      failures.push(
+        `Nguyên liệu ${key} lệch: offline ${fmt(offline.player.materials[key])} vs trực tiếp ${fmt(
+          direct.player.materials[key]
+        )}`
+      );
+    }
+  }
+
+  return failures;
+}
+
+/** Người chơi mô phỏng có trang bị tăng cultivationRate (qua soft cap §16). */
+function playerWithRateBoost(): PlayerState {
+  const equipment = {
+    ...createEmptyEquipmentSlots(),
+    ring: {
+      id: 'sim_ring_rate',
+      name: 'Sim • Tụ Linh Giới',
+      type: 'ring' as EquipmentType,
+      level: 1,
+      rarity: 'green' as Rarity,
+      power: 120,
+      baseStats: { cultivationRate: 8 },
+      affixes: [],
+      createdAt: 0,
+    },
+  };
+  const recalc = calculateStatsAndPower(1, equipment);
+  return {
+    ...createInitialPlayerState(),
+    equipment,
+    stats: recalc.stats,
+    power: recalc.power,
+  };
+}
 
 function withSeededRandom<T>(seed: number, fn: () => T): T {
   const original = Math.random;
@@ -487,75 +660,440 @@ function withSeededRandom<T>(seed: number, fn: () => T): T {
   }
 }
 
-function checkOfflineCase(
-  label: string,
-  seconds: number,
-  options: { rate?: number } = {}
-): CheckResult {
+function checkOfflineFixedRate(): CheckResult {
   const failures: string[] = [];
   const notes: string[] = [];
-  let player = createInitialPlayerState();
-  const tower = createInitialTowerState();
-  if (options.rate) {
-    player = { ...player, stats: { ...player.stats, cultivationRate: options.rate } };
-  }
-  const actions = Math.max(1, Math.floor(seconds * player.stats.cultivationRate));
+  const seed = 246813579;
+  const player = createInitialPlayerState();
+  const tower: TowerState = {
+    ...createInitialTowerState(),
+    lootProgress: 0,
+    lootThreshold: 100000, // nâng ngưỡng loot để cô lập biến số cultivationRate
+  };
+  const seconds = 60;
   const now = Date.now();
-  const seed = 987654321;
 
-  // Cùng seed RNG cho cả hai đường đi → so khớp chính xác về logic (không còn nhiễu thống kê).
   const direct = withSeededRandom(seed, () =>
-    cultivateTowerSystem(player, tower, SETTINGS, actions)
+    simulateOnlineTicks(player, tower, SETTINGS, seconds)
   );
-  const off = withSeededRandom(seed, () =>
+  const offline = withSeededRandom(seed, () =>
     calculateOfflineProgression(player, tower, SETTINGS, now - seconds * 1000, now)
   );
-  const summary = off.summary;
+  failures.push(...compareOfflineWithDirect(offline, direct));
 
+  const expectedActions = Math.floor(seconds * player.stats.cultivationRate);
+  if (direct.actions !== expectedActions) {
+    failures.push(
+      `Số hành động không khớp floor(T×rate): ${fmt(direct.actions)} vs ${fmt(expectedActions)}`
+    );
+  }
+  if (direct.player.stats.cultivationRate !== player.stats.cultivationRate) {
+    failures.push('cultivationRate phải cố định trong kịch bản này');
+  }
+  if ((offline.summary?.itemsGeneratedTotal ?? 0) !== 0) {
+    failures.push('Không kỳ vọng loot trong kịch bản ngưỡng loot cao');
+  }
+
+  notes.push(
+    `A. Tốc độ cố định ${player.stats.cultivationRate}/s · ${seconds}s → ${fmt(expectedActions)} hành động, 0 loot`
+  );
+  notes.push('Offline khớp tuyệt đối với mô phỏng tick trực tiếp (cùng seed RNG)');
+
+  return { name: `4a. Offline — cultivationRate cố định (${seconds}s)`, failures, notes };
+}
+
+function checkOfflineBoostedRate(): CheckResult {
+  const failures: string[] = [];
+  const notes: string[] = [];
+  const seed = 975318642;
+  const player = playerWithRateBoost();
+  const tower: TowerState = {
+    ...createInitialTowerState(),
+    lootProgress: 0,
+    lootThreshold: 100000,
+  };
+  const seconds = 300;
+  const now = Date.now();
+
+  const direct = withSeededRandom(seed, () =>
+    simulateOnlineTicks(player, tower, SETTINGS, seconds)
+  );
+  const offline = withSeededRandom(seed, () =>
+    calculateOfflineProgression(player, tower, SETTINGS, now - seconds * 1000, now)
+  );
+  failures.push(...compareOfflineWithDirect(offline, direct));
+
+  const expectedActions = Math.floor(seconds * player.stats.cultivationRate);
+  if (player.stats.cultivationRate <= 5) {
+    failures.push('Trang bị mô phỏng phải làm cultivationRate tăng trên mức cơ bản 5/s');
+  }
+  // Rate lẻ (10.2/s) tích lũy phần dư theo từng tick — cho phép lệch ±1 do dấu phẩy động.
+  if (Math.abs(direct.actions - expectedActions) > 1) {
+    failures.push(
+      `Số hành động lệch quá ±1 so với floor(T×rate): ${fmt(direct.actions)} vs ${fmt(expectedActions)}`
+    );
+  }
+
+  notes.push(
+    `B. Trang bị +cultivationRate → tốc độ ${player.stats.cultivationRate}/s (gốc 5/s) · ${seconds}s → ${fmt(
+      expectedActions
+    )} hành động (thay vì ${fmt(seconds * 5)})`
+  );
+  notes.push('Offline dùng đúng tốc độ đã buff của trang bị, khớp tick trực tiếp');
+
+  return { name: `4b. Offline — trang bị tăng cultivationRate (${seconds}s)`, failures, notes };
+}
+
+function checkOfflineLootAndEquip(): CheckResult {
+  const failures: string[] = [];
+  const notes: string[] = [];
+  const seed = 135792468;
+  const player = createInitialPlayerState();
+  const tower = createInitialTowerState();
+  const seconds = 2 * 3600;
+  const now = Date.now();
+
+  const direct = withSeededRandom(seed, () =>
+    simulateOnlineTicks(player, tower, SETTINGS, seconds)
+  );
+  const offline = withSeededRandom(seed, () =>
+    calculateOfflineProgression(player, tower, SETTINGS, now - seconds * 1000, now)
+  );
+  failures.push(...compareOfflineWithDirect(offline, direct));
+
+  if (direct.itemsGeneratedTotal < 1) failures.push('Kịch bản 2h phải sinh loot');
+  if (direct.autoEquippedCount < 1) failures.push('Kịch bản 2h phải có ít nhất một lần auto-equip');
+
+  const startRate = player.stats.cultivationRate;
+  const endRate = direct.player.stats.cultivationRate;
+  const startFormulaActions = Math.floor(seconds * startRate);
+  if (endRate !== startRate) {
+    if (direct.actions <= startFormulaActions) {
+      failures.push('Tốc độ đổi giữa chừng nhưng số hành động không lệch công thức rate-đầu — bất thường');
+    }
+    notes.push(
+      `C. Tốc độ đổi giữa chừng ${startRate}/s → ${endRate}/s: ${fmt(
+        direct.actions
+      )} hành động (công thức cũ theo rate-đầu chỉ ${fmt(startFormulaActions)})`
+    );
+  } else {
+    notes.push('C. Tốc độ không đổi trong kịch bản này');
+  }
+  notes.push(
+    `2h: ${fmt(direct.itemsGeneratedTotal)} loot (tự trang bị ${fmt(
+      direct.autoEquippedCount
+    )}, phân giải ${fmt(direct.dismantledCount)}) — từng trường khớp tick trực tiếp`
+  );
+
+  return { name: '4c. Offline — 2h nhiều loot/auto-equip', failures, notes };
+}
+
+function checkOfflineBeyondExactCap(): CheckResult {
+  const failures: string[] = [];
+  const notes: string[] = [];
+  const base = createInitialPlayerState();
+  // Tốc độ 60/s + tắt auto-equip + chặn lên cấp để rate không bị công thức stats ghi đè —
+  // mục đích duy nhất: kích hoạt nhánh ngoại suy khi vượt trần mô phỏng chính xác.
+  const player: PlayerState = {
+    ...base,
+    cultivationExpToNext: Number.MAX_SAFE_INTEGER,
+    stats: { ...base.stats, cultivationRate: 60 },
+  };
+  const tower = createInitialTowerState();
+  const settings: SettingsState = { ...SETTINGS, autoEquip: false };
+  const seconds = MAX_OFFLINE_SECONDS;
+  const now = Date.now();
+
+  const offline = calculateOfflineProgression(
+    player,
+    tower,
+    settings,
+    now - seconds * 1000,
+    now
+  );
+  const summary = offline.summary;
   if (!summary) {
-    failures.push('Không tạo được summary offline (autoCultivation đang tắt?)');
-    return { name: label, failures, notes };
+    failures.push('Không tạo được summary offline cho kịch bản vượt trần');
+    return { name: '4d. Offline — vượt trần mô phỏng chính xác (ngoại suy)', failures, notes };
   }
 
-  const expectedItems = Math.floor((tower.lootProgress + actions) / tower.lootThreshold);
-
-  notes.push(
-    `Rời game ${fmt(seconds)}s → ${fmt(actions)} hành động (tốc độ ${player.stats.cultivationRate}/s, seed RNG cố định)`
-  );
-  notes.push(
-    `Trực tiếp: Đỉnh Lv.${direct.tower.level}, +${fmt(direct.towerExpGain)} EXP Đỉnh, Nhân vật Lv.${direct.player.level}, ${fmt(direct.generatedItems.length)} vật phẩm`
-  );
-  notes.push(
-    `Offline:   Đỉnh Lv.${off.tower.level}, +${fmt(summary.towerExpGained)} EXP Đỉnh, Nhân vật Lv.${off.player.level}, ${fmt(summary.itemsGeneratedTotal)} vật phẩm`
-  );
-  notes.push(`Kỳ vọng theo tiến độ loot: ~${fmt(expectedItems)} vật phẩm (tham khảo)`);
-
-  if (off.tower.level !== direct.tower.level) {
-    failures.push(`Lv Đỉnh lệch: offline ${off.tower.level} vs trực tiếp ${direct.tower.level}`);
+  if (summary.elapsedSeconds !== seconds) {
+    failures.push(`Thời gian phải kẹp đúng ${fmt(seconds)}s: ${fmt(summary.elapsedSeconds)}s`);
   }
-  if (off.player.level !== direct.player.level) {
-    failures.push(`Lv Nhân vật lệch: offline ${off.player.level} vs trực tiếp ${direct.player.level}`);
-  }
-  if (summary.actionsCount !== actions) {
-    failures.push(`actionsCount lệch: ${fmt(summary.actionsCount)} vs ${fmt(actions)}`);
-  }
-  if (summary.towerExpGained !== direct.towerExpGain) {
+  if (summary.actionsCount <= MAX_EXACT_ACTIONS) {
     failures.push(
-      `Tổng EXP Đỉnh lệch: offline ${fmt(summary.towerExpGained)} vs trực tiếp ${fmt(direct.towerExpGain)}`
+      `Không kích hoạt ngoại suy: actionsCount ${fmt(summary.actionsCount)} không vượt trần ${fmt(
+        MAX_EXACT_ACTIONS
+      )}`
     );
   }
-  if (summary.playerExpGained !== direct.playerExpGain) {
+  const expectedActions = seconds * 60; // rate cố định 60/s → tổng = T×rate, gồm cả phần ngoại suy
+  if (summary.actionsCount !== expectedActions) {
     failures.push(
-      `Tổng EXP Nhân vật lệch: offline ${fmt(summary.playerExpGained)} vs trực tiếp ${fmt(direct.playerExpGain)}`
-    );
-  }
-  if (summary.itemsGeneratedTotal !== direct.generatedItems.length) {
-    failures.push(
-      `Số vật phẩm lệch: offline ${fmt(summary.itemsGeneratedTotal)} vs trực tiếp ${fmt(direct.generatedItems.length)}`
+      `Tổng hành động (chính xác + ngoại suy) lệch: ${fmt(summary.actionsCount)} vs ${fmt(
+        expectedActions
+      )}`
     );
   }
 
-  return { name: label, failures, notes };
+  // Không sinh item ảo: loot chỉ đến từ phần mô phỏng chính xác (gain 1/action, ngưỡng 100, đầu 80).
+  const expectedExactItems = Math.floor(
+    (tower.lootProgress + MAX_EXACT_ACTIONS) / tower.lootThreshold
+  );
+  if (summary.itemsGeneratedTotal !== expectedExactItems) {
+    failures.push(
+      `Số vật phẩm phải đúng bằng loot của phần chính xác: ${fmt(
+        summary.itemsGeneratedTotal
+      )} vs ${fmt(expectedExactItems)}`
+    );
+  }
+  if (summary.itemsGenerated.length > 40) {
+    failures.push('itemsGenerated vượt giới hạn 40 món của UI');
+  }
+  if (offline.tower.totalCultivations !== tower.totalCultivations + summary.actionsCount) {
+    failures.push('totalCultivations không khớp tổng số hành động');
+  }
+  if (
+    !Number.isFinite(offline.player.cultivationExp) ||
+    !Number.isFinite(offline.tower.currentExp) ||
+    !Number.isFinite(offline.player.power)
+  ) {
+    failures.push('EXP/Power không hữu hạn sau ngoại suy');
+  }
+
+  notes.push(
+    `D. Rate giả lập 60/s × ${formatDuration(seconds)} = ${fmt(
+      expectedActions
+    )} hành động > trần ${fmt(MAX_EXACT_ACTIONS)} → phần dư ngoại suy, KHÔNG sinh thêm vật phẩm`
+  );
+  notes.push(
+    `Loot thực sinh ${fmt(summary.itemsGeneratedTotal)} món (bằng đúng phần chính xác); lootProgress cuối ${fmt(
+      offline.tower.lootProgress
+    )} (giữ tiến độ dư, theo thiết kế §21)`
+  );
+
+  return { name: '4d. Offline — vượt trần mô phỏng chính xác (ngoại suy)', failures, notes };
+}
+
+function checkOfflineEightHourCap(): CheckResult {
+  const failures: string[] = [];
+  const notes: string[] = [];
+  const seed = 192837465;
+  const player = createInitialPlayerState();
+  const tower = createInitialTowerState();
+  const now = Date.now();
+
+  const direct = withSeededRandom(seed, () =>
+    simulateOnlineTicks(player, tower, SETTINGS, MAX_OFFLINE_SECONDS)
+  );
+  const offline8 = withSeededRandom(seed, () =>
+    calculateOfflineProgression(player, tower, SETTINGS, now - 8 * 3600 * 1000, now)
+  );
+  const offline10 = withSeededRandom(seed, () =>
+    calculateOfflineProgression(player, tower, SETTINGS, now - 10 * 3600 * 1000, now)
+  );
+
+  failures.push(...compareOfflineWithDirect(offline8, direct));
+  failures.push(...compareOfflineWithDirect(offline10, direct));
+
+  if (offline8.summary?.elapsedSeconds !== MAX_OFFLINE_SECONDS) {
+    failures.push(`Rời đúng 8h phải tính đủ 8h: ${fmt(offline8.summary?.elapsedSeconds ?? 0)}s`);
+  }
+  if (offline10.summary?.elapsedSeconds !== MAX_OFFLINE_SECONDS) {
+    failures.push(
+      `Rời 10h phải bị kẹp còn 8h: ${fmt(offline10.summary?.elapsedSeconds ?? 0)}s`
+    );
+  }
+
+  notes.push(
+    `E. Rời 8h và rời 10h cho kết quả GIỐNG NHAU (kẹp trần ${formatDuration(
+      MAX_OFFLINE_SECONDS
+    )}) và khớp tick trực tiếp 8h`
+  );
+  notes.push(
+    `${fmt(direct.actions)} hành động · Đỉnh Lv.${direct.tower.level} · Nhân vật Lv.${direct.player.level}`
+  );
+
+  return { name: '4e. Offline — trần 8 giờ', failures, notes };
+}
+
+// ---------------------------------------------------------------------------
+// 6. Save v1: sanitize dữ liệu hỏng (TASK 002A — Bug #4)
+// ---------------------------------------------------------------------------
+
+function checkSaveSanitize(): CheckResult {
+  const failures: string[] = [];
+  const notes: string[] = [];
+
+  // 6.1 Save hợp lệ hiện tại phải round-trip nguyên vẹn.
+  const validSave = {
+    version: 1,
+    player: createInitialPlayerState(),
+    tower: createInitialTowerState(),
+    settings: SETTINGS,
+    lastSavedAt: Date.now(),
+  };
+  const roundTrip = sanitizeSaveData(JSON.parse(JSON.stringify(validSave)));
+  if (!roundTrip) {
+    failures.push('Save hợp lệ bị từ chối');
+  } else {
+    if (roundTrip.player.level !== validSave.player.level) failures.push('Round-trip đổi Lv Nhân vật');
+    if (roundTrip.tower.lootProgress !== validSave.tower.lootProgress) {
+      failures.push('Round-trip đổi lootProgress');
+    }
+    if (roundTrip.lastSavedAt !== validSave.lastSavedAt) failures.push('Round-trip đổi lastSavedAt');
+    if (roundTrip.settings.autoDismantleMaxRarity !== SETTINGS.autoDismantleMaxRarity) {
+      failures.push('Round-trip đổi settings');
+    }
+  }
+
+  // 6.2 Field thiếu → default hợp lệ, KHÔNG reset cả save.
+  const partial = sanitizeSaveData({
+    version: 1,
+    player: { level: 7 },
+    tower: { level: 5 },
+  });
+  if (!partial) {
+    failures.push('Save thiếu field phụ bị từ chối oan (phải sanitize, không reset)');
+  } else {
+    if (partial.player.level !== 7) failures.push(`Lv hợp lệ bị đổi: ${partial.player.level}`);
+    if (partial.tower.level !== 5) failures.push(`Lv Đỉnh hợp lệ bị đổi: ${partial.tower.level}`);
+    if (partial.player.autoCultivation !== true) failures.push('autoCultivation thiếu phải mặc định true');
+    if (partial.player.inventory.length !== 0) failures.push('inventory thiếu phải mặc định rỗng');
+    if (partial.tower.lootThreshold !== 100) failures.push('lootThreshold thiếu phải mặc định 100');
+    if (partial.settings.autoDismantleMaxRarity !== 'green') {
+      failures.push('settings thiếu phải dùng mặc định');
+    }
+    if (partial.lastSavedAt !== 0) failures.push('lastSavedAt thiếu phải là 0 (không cộng bế quan)');
+    if (!Number.isFinite(partial.player.power) || partial.player.power <= 0) {
+      failures.push('power phải được tính lại hữu hạn');
+    }
+  }
+
+  // 6.3 Dữ liệu sai kiểu / NaN / Infinity / âm.
+  const nasty = sanitizeSaveData({
+    version: 1,
+    player: {
+      level: 'abc',
+      cultivationExp: NaN,
+      cultivationExpToNext: Infinity,
+      contribution: -50,
+      autoCultivation: 'yes',
+      inventory: [null, 42, {}],
+      materials: { basicMaterial: -5, linhStone: NaN },
+      equipment: { weapon: { type: 'helmet' } },
+    },
+    tower: {
+      level: -3,
+      currentExp: Infinity,
+      lootProgress: 1e12,
+      lootThreshold: 0,
+      totalCultivations: -9,
+    },
+    settings: { autoEquip: 'nope', autoDismantleMaxRarity: 'gold' },
+    lastSavedAt: NaN,
+  });
+  if (!nasty) {
+    failures.push('Save nhiễu bị từ chối (kỳ vọng sanitize an toàn)');
+  } else {
+    if (nasty.player.level !== 1) failures.push(`level sai kiểu phải về 1: ${nasty.player.level}`);
+    if (nasty.player.cultivationExp !== 0) {
+      failures.push(`cultivationExp NaN phải về 0: ${nasty.player.cultivationExp}`);
+    }
+    if (nasty.player.cultivationExpToNext !== calculatePlayerExpToNext(1)) {
+      failures.push('cultivationExpToNext Infinity phải dùng công thức hiện hành');
+    }
+    if (nasty.player.contribution !== 0) failures.push('contribution âm phải kẹp 0');
+    if (nasty.player.autoCultivation !== true) failures.push('autoCultivation sai kiểu phải mặc định true');
+    if (nasty.player.inventory.length !== 0) failures.push('inventory rác phải bị lọc sạch');
+    if (nasty.player.materials.basicMaterial !== 0) failures.push('material âm phải về 0');
+    if (nasty.player.equipment.weapon !== null) failures.push('Trang bị sai ô phải bị loại');
+    if (nasty.tower.level !== 1) failures.push('Lv Đỉnh âm phải về 1');
+    if (nasty.tower.currentExp !== 0) failures.push('EXP Đỉnh Infinity phải về 0');
+    if (!(nasty.tower.lootProgress >= 0 && nasty.tower.lootProgress < nasty.tower.lootThreshold)) {
+      failures.push(
+        `lootProgress phải nằm trong [0, threshold): ${nasty.tower.lootProgress}/${nasty.tower.lootThreshold}`
+      );
+    }
+    if (nasty.tower.lootThreshold !== 100) failures.push('lootThreshold 0 phải về mặc định 100');
+    if (nasty.tower.totalCultivations !== 0) failures.push('totalCultivations âm phải về 0');
+    if (nasty.settings.autoEquip !== true) failures.push('settings sai kiểu phải dùng mặc định');
+    if (nasty.settings.autoDismantleMaxRarity !== 'green') {
+      failures.push('rarity lạ phải về mặc định');
+    }
+    if (nasty.lastSavedAt !== 0) failures.push('lastSavedAt NaN phải về 0');
+  }
+
+  // 6.4 Save không thể cứu → null (fallback initial state), không ném lỗi.
+  const hopeless: unknown[] = [null, undefined, 'x', 42, [], { version: 2 }, {}, { version: 1 }];
+  for (const bad of hopeless) {
+    if (sanitizeSaveData(bad) !== null) {
+      failures.push(`Save không hợp lệ vẫn được chấp nhận: ${JSON.stringify(bad) ?? String(bad)}`);
+    }
+  }
+
+  // 6.5 Trang bị: giữ Tiên phẩm + field hợp lệ, loại field rác và món sai ô.
+  const redHelmet = {
+    id: 'sim_red_helmet',
+    name: 'Tiên Quan',
+    type: 'helmet',
+    level: 3,
+    rarity: 'red',
+    power: 999,
+    baseStats: { atk: 55, hp: NaN },
+    affixes: [{ type: 'ATK_PERCENT', value: 12 }],
+    specialEffect: { id: 'tien_dao_burst', name: 'X', description: 'Y', rarity: 'red' },
+    createdAt: 1,
+  };
+  const misfitHelmet = {
+    id: 'sim_misfit',
+    name: 'Mũ lạc ô',
+    type: 'helmet',
+    level: 1,
+    rarity: 'green',
+    power: 10,
+    baseStats: { def: 5 },
+    affixes: [],
+  };
+  const itemized = sanitizeSaveData({
+    version: 1,
+    player: {
+      level: 3,
+      equipment: { weapon: misfitHelmet, helmet: redHelmet },
+      inventory: [redHelmet, {}, null],
+    },
+    tower: { level: 3 },
+  });
+  if (!itemized) {
+    failures.push('Save có trang bị hợp lệ bị từ chối');
+  } else {
+    if (itemized.player.equipment.weapon !== null) {
+      failures.push('Trang bị sai ô phải bị loại bỏ');
+    }
+    if (itemized.player.equipment.helmet?.rarity !== 'red') {
+      failures.push('Tiên phẩm trong ô hợp lệ phải được giữ');
+    }
+    if (itemized.player.equipment.helmet?.specialEffect?.id !== 'tien_dao_burst') {
+      failures.push('Hiệu ứng đặc biệt hợp lệ phải được giữ');
+    }
+    if (itemized.player.inventory.length !== 1 || itemized.player.inventory[0].rarity !== 'red') {
+      failures.push('Túi đồ phải giữ đúng 1 Tiên phẩm và lọc rác');
+    }
+    if (itemized.player.inventory[0].baseStats.hp !== undefined) {
+      failures.push('baseStats NaN phải bị loại field');
+    }
+    if (
+      itemized.player.inventory[0].affixes.length !== 1 ||
+      itemized.player.inventory[0].affixes[0].value !== 12
+    ) {
+      failures.push('Dòng phụ hợp lệ phải được giữ nguyên');
+    }
+  }
+
+  notes.push('4 nhóm kiểm tra: round-trip save hợp lệ · field thiếu/sai kiểu · save không thể cứu · trang bị trong save');
+  notes.push('Không trường hợp nào ném lỗi và không reset oan save hợp lệ');
+
+  return { name: '6. Save v1 — sanitize dữ liệu hỏng', failures, notes };
 }
 
 // ---------------------------------------------------------------------------
@@ -615,11 +1153,12 @@ function main(): void {
     checkLoopInvariants(actions),
     checkRarityDistribution(rolls),
     checkAutoEquipRule(samples),
-    checkOfflineCase('4a. Offline 60s (mô phỏng chính xác, seed RNG cố định)', 60),
-    checkOfflineCase('4b. Offline 1h (mô phỏng chính xác, seed RNG cố định)', 3600),
-    checkOfflineCase('4c. Offline 8h ở tốc độ tối đa ~40/s (mô phỏng chính xác)', 8 * 3600, {
-      rate: 40,
-    }),
+    checkOfflineFixedRate(),
+    checkOfflineBoostedRate(),
+    checkOfflineLootAndEquip(),
+    checkOfflineBeyondExactCap(),
+    checkOfflineEightHourCap(),
+    checkSaveSanitize(),
   ];
 
   for (const result of results) {

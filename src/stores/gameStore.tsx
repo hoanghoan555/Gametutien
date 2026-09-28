@@ -46,6 +46,7 @@ import { soundManager } from '../utils/sound';
 import {
   clearSaveData,
   loadSaveData,
+  readLastSavedAt,
   saveGameDebounced,
   saveGameImmediate,
 } from '../utils/storage';
@@ -179,6 +180,10 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
     stateRef.current = { player, tower, settings };
   }, [player, tower, settings]);
 
+  // Bug #1 (TASK 002A): mốc thời gian nền để tính tiến trình bế quan khi tab hidden → visible.
+  const sessionStartedAtRef = useRef(Date.now());
+  const hiddenAtRef = useRef(0);
+
   // Debounced Save on state change
   useEffect(() => {
     const payload: SaveDataV1 = {
@@ -191,23 +196,77 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
     saveGameDebounced(payload, 500);
   }, [player, tower, settings]);
 
-  // Immediate save on tab close / visibility hide
+  // Bug #1 (TASK 002A): lưu khi rời tab, TÍNH TIẾN TRÌNH BẾ QUAN khi quay lại (không cộng trùng).
   useEffect(() => {
-    const handleVisibilityOrUnload = () => {
-      const { player: p, tower: t, settings: s } = stateRef.current;
-      saveGameImmediate({
-        version: 1,
-        player: p,
-        tower: t,
-        settings: s,
-        lastSavedAt: Date.now(),
-      });
+    const persistSnapshot = (
+      snapshot: { player: PlayerState; tower: TowerState; settings: SettingsState },
+      lastSavedAtOverride?: number
+    ) => {
+      saveGameImmediate(
+        {
+          version: 1,
+          player: snapshot.player,
+          tower: snapshot.tower,
+          settings: snapshot.settings,
+          lastSavedAt: lastSavedAtOverride ?? Date.now(),
+        },
+        lastSavedAtOverride
+      );
     };
-    window.addEventListener('beforeunload', handleVisibilityOrUnload);
-    document.addEventListener('visibilitychange', handleVisibilityOrUnload);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        // Rời tab: đóng dấu mốc bắt đầu "bế quan" rồi lưu ngay.
+        hiddenAtRef.current = Date.now();
+        persistSnapshot(stateRef.current);
+        return;
+      }
+
+      // Quay lại tab: xác định thời gian rời đi từ mốc lưu gần nhất (không reset trước khi tính).
+      const awaySince = Math.max(
+        readLastSavedAt(),
+        hiddenAtRef.current,
+        sessionStartedAtRef.current
+      );
+      hiddenAtRef.current = 0;
+
+      const {
+        player: currentPlayer,
+        tower: currentTower,
+        settings: currentSettings,
+      } = stateRef.current;
+      const offline = calculateOfflineProgression(
+        currentPlayer,
+        currentTower,
+        currentSettings,
+        awaySince,
+        Date.now()
+      );
+      if (!offline.summary) return;
+
+      setPlayer(offline.player);
+      setTower(offline.tower);
+      setOfflineReward(offline.summary);
+      // Chỉ sau khi đã áp dụng thưởng mới ghi mốc thời gian mới — tránh mất khoảng thời gian vừa tính.
+      persistSnapshot({ player: offline.player, tower: offline.tower, settings: currentSettings });
+    };
+
+    const handleBeforeUnload = () => {
+      const { player: p, tower: t, settings: s } = stateRef.current;
+      if (document.visibilityState === 'hidden' && hiddenAtRef.current > 0) {
+        // Đóng trình duyệt khi tab đang ẩn: giữ nguyên mốc rời tab để lần mở sau tính trọn
+        // thời gian bế quan (mốc chỉ ghi một lần — không cộng trùng với visibilitychange).
+        persistSnapshot({ player: p, tower: t, settings: s }, hiddenAtRef.current);
+        return;
+      }
+      persistSnapshot({ player: p, tower: t, settings: s });
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => {
-      window.removeEventListener('beforeunload', handleVisibilityOrUnload);
-      document.removeEventListener('visibilitychange', handleVisibilityOrUnload);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
 
@@ -336,6 +395,10 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     const TICK_MS = 1000;
     const interval = setInterval(() => {
+      // Bug #1 (TASK 002A): tab đang ẩn — không tự chạy hành động nền để thời gian ẩn
+      // được quy đổi trọn vẹn thành tiến trình bế quan lúc quay lại (tránh cộng trùng).
+      if (document.visibilityState === 'hidden') return;
+
       const { player: curPlayer } = stateRef.current;
       const now = Date.now();
 
@@ -454,19 +517,23 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const dismantleSingleItem = useCallback(
     (itemId: string) => {
+      const { player: curPlayer } = stateRef.current;
+      const targetSnapshot = curPlayer.inventory.find((item) => item.id === itemId);
+      if (!targetSnapshot) return;
+
+      // Bug #3 (TASK 002A): state updater thuần — không toast/không side effect bên trong.
       setPlayer((prev) => {
         const target = prev.inventory.find((i) => i.id === itemId);
         if (!target) return prev;
 
-        const reward = getDismantleReward(target);
-        pushToast(`Phân giải ${target.name} thành công`, target.rarity);
-
         return {
           ...prev,
           inventory: prev.inventory.filter((i) => i.id !== itemId),
-          materials: addMaterials(prev.materials, reward),
+          materials: addMaterials(prev.materials, getDismantleReward(target)),
         };
       });
+
+      pushToast(`Phân giải ${targetSnapshot.name} thành công`, targetSnapshot.rarity);
       setSelectedItem(null);
     },
     [pushToast]
@@ -474,12 +541,22 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const dismantleBulkByRarity = useCallback(
     (maxRarity: Rarity): number => {
-      let dismantledCount = 0;
+      const { player: curPlayer } = stateRef.current;
       const maxOrder = RARITY_CONFIG[maxRarity].order;
+      const snapshotCount = curPlayer.inventory.reduce(
+        (count, item) =>
+          item.rarity !== 'red' && RARITY_CONFIG[item.rarity].order <= maxOrder
+            ? count + 1
+            : count,
+        0
+      );
 
+      // Bug #3 (TASK 002A): updater thuần (StrictMode an toàn) — không toast, không đếm
+      // tích lũy bên trong; kết quả trả về tính từ state quan sát được tại thời điểm gọi.
       setPlayer((prev) => {
         const kept: Item[] = [];
-        let updatedMaterials = { ...prev.materials };
+        let updatedMaterials = prev.materials;
+        let removedCount = 0;
 
         for (const item of prev.inventory) {
           // Rule 14: Không cho auto-dismantle Red
@@ -491,15 +568,13 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
               updatedMaterials,
               getDismantleReward(item)
             );
-            dismantledCount += 1;
+            removedCount += 1;
           } else {
             kept.push(item);
           }
         }
 
-        if (dismantledCount > 0) {
-          pushToast(`Đã phân giải ${dismantledCount} trang bị dư thừa!`);
-        }
+        if (removedCount === 0) return prev;
 
         return {
           ...prev,
@@ -508,7 +583,11 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
         };
       });
 
-      return dismantledCount;
+      if (snapshotCount > 0) {
+        pushToast(`Đã phân giải ${snapshotCount} trang bị dư thừa!`);
+      }
+
+      return snapshotCount;
     },
     [pushToast]
   );
