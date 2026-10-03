@@ -65,10 +65,98 @@ export interface SeqConflict {
 
 export type SubmitActionsResult = SubmitActionsApplied | SeqConflict;
 
+export interface LeaderboardEntry {
+  rank: number;
+  userId: string;
+  name: string;
+  contribution: number;
+  power: number;
+  realmName: string;
+  realmLayer: number;
+  level: number;
+}
+
+export interface LeaderboardData {
+  topContribution: LeaderboardEntry[];
+  topPower: LeaderboardEntry[];
+  globalTower: MpTowerState;
+  totalCultivators: number;
+  myRank?: {
+    contributionRank: number;
+    powerRank: number;
+  };
+}
+
+export interface TowerUpdateNotification {
+  exp: number;
+  levelsGained: number;
+  contributorId: string;
+  contributorName: string;
+}
+
+export type TowerUpdateListener = (tower: MpTowerState, event: TowerUpdateNotification) => void;
+
+export interface MigrationResult {
+  success: boolean;
+  importedAt?: number;
+  error?: string;
+  snapshot?: SyncSnapshot;
+}
+
+export interface OfflineClaimResult {
+  applied: boolean;
+  offlineSeconds: number;
+  actionsPerformed: number;
+  playerExpGained: number;
+  towerExpGained: number;
+  towerLevelsGained: number;
+  autoEquippedCount: number;
+  dismantledCount: number;
+  itemsReceivedCount: number;
+  snapshot?: SyncSnapshot;
+  error?: string;
+}
+
+export interface AnomalyRecord {
+  id: string;
+  userId: string;
+  type: 'suspicious_budget' | 'seq_jump' | 'rate_exceeded' | 'invalid_payload';
+  details: string;
+  timestamp: number;
+}
+
+export interface ServerBackup {
+  version: number;
+  timestamp: number;
+  tower: MpTowerState;
+  userCount: number;
+  checksum: string;
+  usersData?: string;
+}
+
+export interface ServerMetrics {
+  serverTime: number;
+  uptimeSeconds: number;
+  activeUsers: number;
+  totalCultivations: number;
+  towerLevel: number;
+  anomaliesCount: number;
+  recentAnomalies: AnomalyRecord[];
+}
+
 export interface GameStore {
   authOrCreateGuest(deviceId: string, now: number): Promise<GuestAccount>;
   getUserById(userId: string): Promise<GuestAccount | null>;
   /** Read-only — không mutate state (gate 7). */
   readSnapshot(userId: string, now: number): Promise<SyncSnapshot>;
   submitActions(request: SubmitActionsRequest): Promise<SubmitActionsResult>;
+  getLeaderboard(userId?: string): Promise<LeaderboardData>;
+  onTowerUpdate(listener: TowerUpdateListener): () => void;
+  importSaveData(userId: string, rawSave: unknown, now: number): Promise<MigrationResult>;
+  claimOfflineReward(userId: string, now: number): Promise<OfflineClaimResult>;
+  recordAnomaly(anomaly: Omit<AnomalyRecord, 'id'>): void;
+  getAnomalies(limit?: number): AnomalyRecord[];
+  createBackup(now: number): Promise<ServerBackup>;
+  restoreBackup(backup: ServerBackup): Promise<boolean>;
+  getMetrics(now: number): Promise<ServerMetrics>;
 }

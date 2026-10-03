@@ -1,7 +1,8 @@
-import { Hammer } from 'lucide-react';
+import { Anvil, Hammer } from 'lucide-react';
 import React from 'react';
 import { EQUIPMENT_CONFIG, EQUIPMENT_SLOTS_LIST } from '../../data/equipment';
 import { RARITY_CONFIG, RARITY_ORDER } from '../../data/rarities';
+import { useGameStore } from '../../stores/gameStore';
 import { useInventoryStore } from '../../stores/inventory.store';
 import { useSettingsStore } from '../../stores/settings.store';
 import { MAX_INVENTORY_SLOTS } from '../../systems/equipment';
@@ -10,6 +11,7 @@ import { formatExactNumber } from '../../utils/number';
 import { InventoryGrid } from './InventoryGrid';
 
 export const InventoryPanel: React.FC = () => {
+  const { openEnhanceModal } = useGameStore();
   const {
     inventory,
     materials,
@@ -59,29 +61,44 @@ export const InventoryPanel: React.FC = () => {
       </div>
 
       {/* Materials Summary Bar */}
-      <div className="grid grid-cols-4 gap-1.5 p-2.5 rounded-xl bg-slate-900/70 border border-slate-800 text-center">
-        <div>
-          <div className="text-[10px] text-slate-400">Linh Thiết</div>
-          <div className="font-mono-num text-xs font-semibold text-slate-200">
-            {formatExactNumber(materials.basicMaterial)}
-          </div>
+      <div className="p-2.5 rounded-xl bg-slate-900/70 border border-slate-800 space-y-2">
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-semibold text-slate-300">
+            Kho Nguyên Liệu Rèn Đúc
+          </span>
+          <button
+            type="button"
+            onClick={() => openEnhanceModal()}
+            className="text-[11px] text-amber-300 hover:text-amber-200 font-semibold flex items-center gap-1 cursor-pointer bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 px-2 py-0.5 rounded-lg transition-colors"
+          >
+            <Anvil className="w-3.5 h-3.5" />
+            <span>Cường Hóa Trận Pháp →</span>
+          </button>
         </div>
-        <div>
-          <div className="text-[10px] text-slate-400">Linh Thạch</div>
-          <div className="font-mono-num text-xs font-semibold text-emerald-300">
-            {formatExactNumber(materials.linhStone)}
+        <div className="grid grid-cols-4 gap-1.5 text-center">
+          <div>
+            <div className="text-[10px] text-slate-400">Linh Thiết</div>
+            <div className="font-mono-num text-xs font-semibold text-slate-200">
+              {formatExactNumber(materials.basicMaterial)}
+            </div>
           </div>
-        </div>
-        <div>
-          <div className="text-[10px] text-slate-400">Huyền Tinh</div>
-          <div className="font-mono-num text-xs font-semibold text-sky-300">
-            {formatExactNumber(materials.advancedMaterial)}
+          <div>
+            <div className="text-[10px] text-slate-400">Linh Thạch</div>
+            <div className="font-mono-num text-xs font-semibold text-emerald-300">
+              {formatExactNumber(materials.linhStone)}
+            </div>
           </div>
-        </div>
-        <div>
-          <div className="text-[10px] text-slate-400">Tiên Ngọc</div>
-          <div className="font-mono-num text-xs font-semibold text-amber-300">
-            {formatExactNumber(materials.rareMaterial)}
+          <div>
+            <div className="text-[10px] text-slate-400">Huyền Tinh</div>
+            <div className="font-mono-num text-xs font-semibold text-sky-300">
+              {formatExactNumber(materials.advancedMaterial)}
+            </div>
+          </div>
+          <div>
+            <div className="text-[10px] text-slate-400">Tiên Ngọc</div>
+            <div className="font-mono-num text-xs font-semibold text-amber-300">
+              {formatExactNumber(materials.rareMaterial)}
+            </div>
           </div>
         </div>
       </div>

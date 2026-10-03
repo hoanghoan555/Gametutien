@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { buildApp } from '../server/src/app';
 import { AuthConfig } from '../server/src/auth';
+import { createHmacActionDepsFactory } from '../server/src/rng';
 import { MemoryGameStore } from '../server/src/store/memory';
 import { createMutableClock } from './mp-helpers';
 
@@ -13,7 +14,8 @@ function makeApp(options: { tokenTtlMs?: number } = {}) {
     secret: 'api-test-secret',
     tokenTtlMs: options.tokenTtlMs ?? 30 * 24 * 3600 * 1000,
   };
-  const app = buildApp({ store, auth, clock });
+  const actionDeps = createHmacActionDepsFactory({ secret: auth.secret });
+  const app = buildApp({ store, auth, clock, authority: { actionDeps, clock } });
   return { app, clock, advance, store };
 }
 
@@ -111,14 +113,35 @@ test('token hết hạn ⇒ 401', async () => {
   await app.close();
 });
 
-test('gate 12 — POST /actions/cultivate trả 501: chưa mở gameplay ở P5.1', async () => {
-  const { app } = makeApp();
+test('P5.2 — POST /actions/cultivate: xử lý Khai Đỉnh authoritative, trả delta và ackSeq', async () => {
+  const { app, advance } = makeApp();
+
+  // 1. Chưa đăng nhập -> 401
+  const unauth = await app.inject({
+    method: 'POST',
+    url: '/actions/cultivate',
+    payload: { seq: 1, n: 1 },
+  });
+  assert.equal(unauth.statusCode, 401);
+
+  // 2. Đăng ký guest và Khai Đỉnh
+  const guest = await registerGuest(app, 'device-cultivate-001');
+  const headers = { authorization: `Bearer ${guest.token}` };
+
+  advance(1000);
   const response = await app.inject({
     method: 'POST',
     url: '/actions/cultivate',
-    payload: { seq: 1, n: 5 },
+    headers,
+    payload: { seq: 1, n: 1, mode: 'manual' },
   });
-  assert.equal(response.statusCode, 501);
-  assert.equal(response.json().code, 'not_implemented');
+
+  assert.equal(response.statusCode, 200);
+  const data = response.json();
+  assert.equal(data.ackSeq, 1);
+  assert.ok(data.towerDelta.exp > 0);
+  assert.ok(data.playerDelta.exp > 0);
+  assert.ok(Array.isArray(data.lootEvents));
+
   await app.close();
 });

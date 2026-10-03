@@ -6,6 +6,10 @@ export function usePlayerStore() {
     toggleAutoCultivation,
     equipItemFromInventory,
     unequipSlot,
+    openEnhanceModal,
+    enhanceSlot,
+    enhanceSlotMax,
+    enhanceAllBalanced,
     debugAddPlayerExp,
   } = useGameStore();
 
@@ -14,6 +18,10 @@ export function usePlayerStore() {
     toggleAutoCultivation,
     equipItem: equipItemFromInventory,
     unequipSlot,
+    openEnhanceModal,
+    enhanceSlot,
+    enhanceSlotMax,
+    enhanceAllBalanced,
     debugAddPlayerExp,
   };
 }

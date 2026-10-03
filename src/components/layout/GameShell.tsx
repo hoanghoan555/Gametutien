@@ -4,14 +4,23 @@ import { useGameStore } from '../../stores/gameStore';
 import { formatExactNumber } from '../../utils/number';
 import { DebugPanel } from '../common/DebugPanel';
 import { OfflineModal } from '../common/OfflineModal';
+import { EnhanceModal } from '../equipment/EnhanceModal';
 import { ItemDetail } from '../equipment/ItemDetail';
+import { LeaderboardModal } from '../leaderboard/LeaderboardModal';
 import { BottomNavigation } from './BottomNavigation';
 import { TopStatusBar } from './TopStatusBar';
 
 export const GameShell: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const { toasts } = useGameStore();
+  const {
+    toasts,
+    isEnhanceModalOpen,
+    setIsEnhanceModalOpen,
+    activeEnhanceSlot,
+    isLeaderboardOpen,
+    setIsLeaderboardOpen,
+  } = useGameStore();
 
   return (
     <div className="relative w-full h-dvh bg-[#05070b] flex items-center justify-center overflow-hidden">
@@ -64,6 +73,15 @@ export const GameShell: React.FC<{ children: React.ReactNode }> = ({
 
       {/* Modals & Dev Tools */}
       <ItemDetail />
+      <EnhanceModal
+        isOpen={isEnhanceModalOpen}
+        onClose={() => setIsEnhanceModalOpen(false)}
+        defaultSlot={activeEnhanceSlot}
+      />
+      <LeaderboardModal
+        isOpen={isLeaderboardOpen}
+        onClose={() => setIsLeaderboardOpen(false)}
+      />
       <OfflineModal />
       <DebugPanel />
     </div>

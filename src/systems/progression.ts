@@ -1,7 +1,10 @@
 import { EQUIPMENT_SLOTS_LIST } from '../data/equipment';
 import { getRealmInfoForLevel } from '../data/realms';
-import { EquipmentSlots, Item } from '../types/item';
+import { PlayerBeastState } from '../types/beast';
+import { EquipmentSlots, EquipmentType, Item } from '../types/item';
 import { PlayerState, PlayerStats } from '../types/player';
+import { createInitialBeastState, getBeastStats } from './beast';
+import { createEmptyEnhancements, getSlotEnhancementStats } from './enhancement';
 import { createEmptyEquipmentSlots, createEmptyMaterials } from './equipment';
 
 export function calculatePlayerExpToNext(level: number): number {
@@ -22,7 +25,9 @@ function applySoftCap(value: number, cap: number): number {
 
 export function calculateStatsAndPower(
   level: number,
-  equipment: EquipmentSlots
+  equipment: EquipmentSlots,
+  enhancements?: Record<EquipmentType, number>,
+  beastState?: PlayerBeastState
 ): { stats: PlayerStats; power: number } {
   const realmInfo = getRealmInfoForLevel(level);
   const { realm, layer } = realmInfo;
@@ -44,6 +49,41 @@ export function calculateStatsAndPower(
   let cultRatePercentBonus = 0;
   let itemCultivationBonus = 0;
   let equipmentPowerSum = 0;
+
+  // Cộng chỉ số Cường Hóa Trận Pháp (nếu có)
+  if (enhancements) {
+    for (const slotType of EQUIPMENT_SLOTS_LIST) {
+      const enhLevel = enhancements[slotType] ?? 0;
+      if (enhLevel <= 0) continue;
+      const enhBonus = getSlotEnhancementStats(slotType, enhLevel);
+      if (enhBonus.atk) baseAtk += enhBonus.atk;
+      if (enhBonus.hp) baseHp += enhBonus.hp;
+      if (enhBonus.def) baseDef += enhBonus.def;
+      if (enhBonus.critRate) critRate += enhBonus.critRate;
+      if (enhBonus.critDamage) critDamage += enhBonus.critDamage;
+      if (enhBonus.attackSpeed) attackSpeed += enhBonus.attackSpeed;
+      if (enhBonus.cultivationRate) itemCultivationBonus += enhBonus.cultivationRate;
+    }
+  }
+
+  // Cộng chỉ số Thần Thú Xuất Chiến (nếu có)
+  if (beastState?.activeBeastId) {
+    const activeId = beastState.activeBeastId;
+    const bRecord = beastState.beasts[activeId];
+    if (bRecord && bRecord.unlocked && bRecord.level > 0) {
+      const bStats = getBeastStats(activeId, bRecord.level);
+      if (bStats.atk) baseAtk += bStats.atk;
+      if (bStats.hp) baseHp += bStats.hp;
+      if (bStats.def) baseDef += bStats.def;
+      if (bStats.critRate) critRate += bStats.critRate;
+      if (bStats.critDamage) critDamage += bStats.critDamage;
+      if (bStats.attackSpeed) attackSpeed += bStats.attackSpeed;
+      if (bStats.cultivationRate) itemCultivationBonus += bStats.cultivationRate;
+
+      if (activeId === 'chu_tuoc') towerExpBonus += 15;
+      if (activeId === 'ky_lan') lootRate += 15;
+    }
+  }
 
   for (const slotType of EQUIPMENT_SLOTS_LIST) {
     const item = equipment[slotType];
@@ -146,17 +186,29 @@ export function calculateStatsAndPower(
 export function getPowerDeltaIfEquipped(player: PlayerState, item: Item): number {
   if (player.equipment[item.type]?.id === item.id) return 0;
 
-  const { power } = calculateStatsAndPower(player.level, {
-    ...player.equipment,
-    [item.type]: item,
-  });
+  const { power } = calculateStatsAndPower(
+    player.level,
+    {
+      ...player.equipment,
+      [item.type]: item,
+    },
+    player.enhancements,
+    player.beastState
+  );
   return power - player.power;
 }
 
 export function createInitialPlayerState(): PlayerState {
   const initialLevel = 1;
   const equipment = createEmptyEquipmentSlots();
-  const { stats, power } = calculateStatsAndPower(initialLevel, equipment);
+  const enhancements = createEmptyEnhancements();
+  const beastState = createInitialBeastState();
+  const { stats, power } = calculateStatsAndPower(
+    initialLevel,
+    equipment,
+    enhancements,
+    beastState
+  );
 
   return {
     level: initialLevel,
@@ -165,6 +217,8 @@ export function createInitialPlayerState(): PlayerState {
     power,
     stats,
     equipment,
+    enhancements,
+    beastState,
     inventory: [],
     materials: createEmptyMaterials(),
     contribution: 0,
@@ -189,7 +243,12 @@ export function addPlayerCultivationExp(
   }
 
   if (levelsGained > 0) {
-    const { stats, power } = calculateStatsAndPower(level, player.equipment);
+    const { stats, power } = calculateStatsAndPower(
+      level,
+      player.equipment,
+      player.enhancements,
+      player.beastState
+    );
     return {
       player: {
         ...player,

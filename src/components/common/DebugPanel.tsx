@@ -13,6 +13,7 @@ export const DebugPanel: React.FC = () => {
     debugSetTowerLevel,
     debugGenerateItem,
     debugSimulateOffline,
+    debugAddMaterials,
     debugClearInventory,
     debugResetSave,
   } = useGameStore();
@@ -56,7 +57,7 @@ export const DebugPanel: React.FC = () => {
             </button>
           </div>
 
-          {/* EXP Actions */}
+          {/* EXP & Materials Actions */}
           <div className="grid grid-cols-2 gap-1.5">
             <button
               type="button"
@@ -71,6 +72,13 @@ export const DebugPanel: React.FC = () => {
               className="px-2 py-1.5 rounded-lg bg-slate-800/90 hover:bg-slate-700 text-emerald-300 font-medium text-left truncate cursor-pointer"
             >
               +10000 Player EXP
+            </button>
+            <button
+              type="button"
+              onClick={() => debugAddMaterials()}
+              className="col-span-2 px-2 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-200 font-medium text-center truncate cursor-pointer"
+            >
+              +10,000 Nguyên Liệu Rèn Đúc
             </button>
           </div>
 
@@ -166,8 +174,38 @@ export const DebugPanel: React.FC = () => {
             </button>
             <button
               type="button"
+              onClick={async () => {
+                try {
+                  const deviceId = 'debug-device-tester';
+                  const auth = await (await fetch('/api/auth/guest', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ deviceId }),
+                  })).json();
+                  const rawSave = localStorage.getItem('vandao_tien_dinh_save_v1');
+                  if (rawSave) {
+                    await fetch('/api/migration/import', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${auth.token}`,
+                      },
+                      body: JSON.stringify({ rawSave: JSON.parse(rawSave) }),
+                    });
+                  }
+                  alert('Đã test đồng bộ dữ liệu lên máy chủ thành công!');
+                } catch {
+                  // ignore
+                }
+              }}
+              className="px-2 py-1.5 rounded-lg bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-500/40 text-emerald-300 truncate cursor-pointer"
+            >
+              Cloud Sync
+            </button>
+            <button
+              type="button"
               onClick={debugResetSave}
-              className="px-2 py-1.5 rounded-lg bg-rose-950/80 hover:bg-rose-900 border border-rose-500/40 text-rose-300 flex items-center justify-center gap-1 truncate cursor-pointer"
+              className="col-span-2 px-2 py-1.5 rounded-lg bg-rose-950/80 hover:bg-rose-900 border border-rose-500/40 text-rose-300 flex items-center justify-center gap-1 truncate cursor-pointer"
             >
               <RotateCcw className="w-3 h-3" />
               <span>Reset Save</span>

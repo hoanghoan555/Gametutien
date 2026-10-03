@@ -1,4 +1,4 @@
-import { Volume2, VolumeX } from 'lucide-react';
+import { Trophy, Volume2, VolumeX } from 'lucide-react';
 import React from 'react';
 import { getRealmInfoForLevel } from '../../data/realms';
 import { useGameStore } from '../../stores/gameStore';
@@ -6,7 +6,7 @@ import { formatExactNumber, formatNumber } from '../../utils/number';
 import { ProgressBar } from '../common/ProgressBar';
 
 export const TopStatusBar: React.FC = () => {
-  const { player, settings, updateSettings } = useGameStore();
+  const { player, settings, updateSettings, openLeaderboardModal } = useGameStore();
   const realmInfo = getRealmInfoForLevel(player.level);
 
   return (
@@ -29,10 +29,21 @@ export const TopStatusBar: React.FC = () => {
           </div>
         </div>
 
-        {/* Right: Power & Sound Toggle */}
-        <div className="flex items-center gap-2.5 shrink-0">
-          <div className="text-right">
-            <div className="text-[11px] text-slate-400 leading-none">Chiến Lực</div>
+        {/* Right: Leaderboard, Power & Sound Toggle */}
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={openLeaderboardModal}
+            className="min-h-[36px] px-2.5 flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-amber-950/60 to-slate-900 border border-amber-500/40 text-amber-300 hover:border-amber-400 hover:text-amber-200 transition-all cursor-pointer shadow-sm"
+            title="Bảng Phong Thần Tiên Giới"
+          >
+            <Trophy className="w-3.5 h-3.5 text-amber-400" />
+            <span className="text-xs font-semibold">Phong Thần</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+          </button>
+
+          <div className="text-right pl-1">
+            <div className="text-[10px] text-slate-400 leading-none">Chiến Lực</div>
             <div className="font-mono-num text-sm font-bold text-amber-300 tracking-tight">
               {formatExactNumber(player.power)}
             </div>
@@ -43,7 +54,7 @@ export const TopStatusBar: React.FC = () => {
             onClick={() =>
               updateSettings({ soundEnabled: !settings.soundEnabled })
             }
-            className="min-h-[38px] min-w-[38px] flex items-center justify-center rounded-xl bg-slate-900/90 border border-slate-800 text-slate-400 hover:text-amber-300 transition-colors cursor-pointer"
+            className="min-h-[36px] min-w-[36px] flex items-center justify-center rounded-xl bg-slate-900/90 border border-slate-800 text-slate-400 hover:text-amber-300 transition-colors cursor-pointer"
             aria-label={settings.soundEnabled ? 'Tắt âm thanh' : 'Bật âm thanh'}
             title={settings.soundEnabled ? 'Âm thanh: Bật' : 'Âm thanh: Tắt'}
           >

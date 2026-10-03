@@ -7,11 +7,23 @@ import React, {
   useRef,
   useState,
 } from 'react';
+import { BEAST_CONFIGS } from '../data/beasts';
+import { EQUIPMENT_CONFIG } from '../data/equipment';
 import { RARITY_CONFIG } from '../data/rarities';
+import {
+  deployBeast,
+  hatchSpiritEgg,
+  upgradeBeast,
+} from '../systems/beast';
 import {
   cultivateTowerSystem,
   processItemAcquisition,
 } from '../systems/cultivation';
+import {
+  enhanceAllBalanced,
+  enhanceSlotMax,
+  enhanceSlotOnce,
+} from '../systems/enhancement';
 import {
   addMaterials,
   getDismantleReward,
@@ -29,6 +41,7 @@ import {
   createInitialTowerState,
   setTowerLevelState,
 } from '../systems/tower';
+import { BeastId } from '../types/beast';
 import {
   FloatingContribution,
   FlyingLootItem,
@@ -91,12 +104,33 @@ interface GameContextValue {
   updateSettings: (partial: Partial<SettingsState>) => void;
   claimOfflineReward: () => void;
 
+  // Enhancement Actions
+  isEnhanceModalOpen: boolean;
+  setIsEnhanceModalOpen: (open: boolean) => void;
+  activeEnhanceSlot: EquipmentType;
+  setActiveEnhanceSlot: (slot: EquipmentType) => void;
+  openEnhanceModal: (slot?: EquipmentType) => void;
+  enhanceSlot: (slot: EquipmentType) => boolean;
+  enhanceSlotMax: (slot: EquipmentType) => number;
+  enhanceAllBalanced: () => number;
+
+  // Leaderboard Actions
+  isLeaderboardOpen: boolean;
+  setIsLeaderboardOpen: (open: boolean) => void;
+  openLeaderboardModal: () => void;
+
+  // Spirit Beast Actions
+  hatchEgg: () => boolean;
+  upgradeBeastLevel: (beastId: BeastId) => boolean;
+  deployBeastCompanion: (beastId: BeastId | null) => void;
+
   // Debug Actions (Section 24)
   debugAddTowerExp: (amount: number) => void;
   debugAddPlayerExp: (amount: number) => void;
   debugSetTowerLevel: (level: number) => void;
   debugGenerateItem: (rarity: Rarity) => void;
   debugSimulateOffline: (seconds: number) => void;
+  debugAddMaterials: () => void;
   debugClearInventory: () => void;
   debugResetSave: () => void;
 }
@@ -124,7 +158,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
 
     const recalc = calculateStatsAndPower(
       saved.player.level,
-      saved.player.equipment
+      saved.player.equipment,
+      saved.player.enhancements,
+      saved.player.beastState
     );
     const hydratedPlayer: PlayerState = {
       ...createInitialPlayerState(),
@@ -173,6 +209,22 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
   const [flyingLootItems, setFlyingLootItems] = useState<FlyingLootItem[]>([]);
   const [toasts, setToasts] = useState<ToastNotice[]>([]);
   const [isCultivatingPulse, setIsCultivatingPulse] = useState(false);
+
+  // Enhancement State
+  const [isEnhanceModalOpen, setIsEnhanceModalOpen] = useState(false);
+  const [activeEnhanceSlot, setActiveEnhanceSlot] =
+    useState<EquipmentType>('weapon');
+
+  const openEnhanceModal = useCallback((slot?: EquipmentType) => {
+    if (slot) setActiveEnhanceSlot(slot);
+    setIsEnhanceModalOpen(true);
+  }, []);
+
+  // Leaderboard State
+  const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
+  const openLeaderboardModal = useCallback(() => {
+    setIsLeaderboardOpen(true);
+  }, []);
 
   // TASK 002B: stateRef là bản sao đồng bộ của state (nguồn đọc duy nhất cho actions).
   // Mọi thay đổi state đi qua commit* — updater thuần, không race giữa snapshot và setState.
@@ -479,7 +531,12 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
         ...prev.equipment,
         [targetItem.type]: targetItem,
       };
-      const { stats, power } = calculateStatsAndPower(prev.level, nextEquipment);
+      const { stats, power } = calculateStatsAndPower(
+        prev.level,
+        nextEquipment,
+        prev.enhancements,
+        prev.beastState
+      );
       commitPlayer({
         ...prev,
         equipment: nextEquipment,
@@ -512,7 +569,12 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
         ...prev.equipment,
         [slot]: null,
       };
-      const { stats, power } = calculateStatsAndPower(prev.level, nextEquipment);
+      const { stats, power } = calculateStatsAndPower(
+        prev.level,
+        nextEquipment,
+        prev.enhancements,
+        prev.beastState
+      );
 
       commitPlayer({
         ...prev,
@@ -591,6 +653,152 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
   const claimOfflineReward = useCallback(() => {
     setOfflineReward(null);
   }, []);
+
+  // --- ENHANCEMENT ACTIONS ---
+  const enhanceSlot = useCallback(
+    (slot: EquipmentType): boolean => {
+      const curPlayer = stateRef.current.player;
+      const curSettings = stateRef.current.settings;
+      const res = enhanceSlotOnce(curPlayer, slot);
+      if (!res.success) {
+        soundManager.playEnhanceFail(curSettings.soundEnabled);
+        pushToast(res.error ?? 'Cường hóa thất bại!');
+        return false;
+      }
+      commitPlayer(res.player);
+      soundManager.playEnhanceSuccess(curSettings.soundEnabled);
+      const newLvl = res.player.enhancements?.[slot] ?? 1;
+      const slotLabel = EQUIPMENT_CONFIG[slot].label;
+      const powerDelta = res.player.power - curPlayer.power;
+      pushToast(
+        `Cường hóa ${slotLabel} lên +${newLvl} thành công!`,
+        'orange',
+        powerDelta > 0 ? powerDelta : undefined
+      );
+      return true;
+    },
+    [commitPlayer, pushToast]
+  );
+
+  const enhanceSlotMaxAction = useCallback(
+    (slot: EquipmentType): number => {
+      const curPlayer = stateRef.current.player;
+      const curSettings = stateRef.current.settings;
+      const res = enhanceSlotMax(curPlayer, slot);
+      if (!res.success || res.levelsGained <= 0) {
+        soundManager.playEnhanceFail(curSettings.soundEnabled);
+        pushToast(res.error ?? 'Không đủ nguyên liệu để Cường Hóa!');
+        return 0;
+      }
+      commitPlayer(res.player);
+      soundManager.playEnhanceSuccess(curSettings.soundEnabled);
+      const newLvl = res.player.enhancements?.[slot] ?? 1;
+      const slotLabel = EQUIPMENT_CONFIG[slot].label;
+      const powerDelta = res.player.power - curPlayer.power;
+      pushToast(
+        `Cường hóa ${slotLabel} tăng +${res.levelsGained} cấp (Đạt +${newLvl})!`,
+        'red',
+        powerDelta > 0 ? powerDelta : undefined
+      );
+      return res.levelsGained;
+    },
+    [commitPlayer, pushToast]
+  );
+
+  const enhanceAllBalancedAction = useCallback((): number => {
+    const curPlayer = stateRef.current.player;
+    const curSettings = stateRef.current.settings;
+    const res = enhanceAllBalanced(curPlayer);
+    if (res.totalLevelsGained <= 0) {
+      soundManager.playEnhanceFail(curSettings.soundEnabled);
+      pushToast('Không đủ nguyên liệu để Cường Hóa bất kỳ ô nào!');
+      return 0;
+    }
+    commitPlayer(res.player);
+    soundManager.playEnhanceSuccess(curSettings.soundEnabled);
+    const powerDelta = res.player.power - curPlayer.power;
+    pushToast(
+      `Cường hóa đồng đều 6 ô tăng tổng cộng +${res.totalLevelsGained} cấp!`,
+      'red',
+      powerDelta > 0 ? powerDelta : undefined
+    );
+    return res.totalLevelsGained;
+  }, [commitPlayer, pushToast]);
+
+  // --- SPIRIT BEAST ACTIONS ---
+  const hatchEgg = useCallback((): boolean => {
+    const curPlayer = stateRef.current.player;
+    const curSettings = stateRef.current.settings;
+    const res = hatchSpiritEgg(curPlayer);
+    if ('error' in res) {
+      soundManager.playEnhanceFail(curSettings.soundEnabled);
+      pushToast(res.error);
+      return false;
+    }
+    commitPlayer(res.player);
+    soundManager.playLevelUp(curSettings.soundEnabled);
+    const cfg = BEAST_CONFIGS[res.beastId];
+    if (res.isFirstUnlock) {
+      pushToast(
+        `Chúc mừng! Thần Thú [${cfg.name}] đã thức tỉnh xuất thế!`,
+        cfg.rarity
+      );
+    } else {
+      const newLvl = res.player.beastState?.beasts[res.beastId]?.level ?? 1;
+      pushToast(
+        `Ấp trùng [${cfg.name}]! Cấp tăng lên Lv.${newLvl}`,
+        cfg.rarity
+      );
+    }
+    return true;
+  }, [commitPlayer, pushToast]);
+
+  const upgradeBeastLevel = useCallback(
+    (beastId: BeastId): boolean => {
+      const curPlayer = stateRef.current.player;
+      const curSettings = stateRef.current.settings;
+      const res = upgradeBeast(curPlayer, beastId);
+      if (!res.success) {
+        soundManager.playEnhanceFail(curSettings.soundEnabled);
+        pushToast(res.error ?? 'Bồi dưỡng thất bại!');
+        return false;
+      }
+      commitPlayer(res.player);
+      soundManager.playEnhanceSuccess(curSettings.soundEnabled);
+      const cfg = BEAST_CONFIGS[beastId];
+      const newLvl = res.player.beastState?.beasts[beastId]?.level ?? 1;
+      const powerDelta = res.player.power - curPlayer.power;
+      pushToast(
+        `Bồi dưỡng [${cfg.name}] lên Lv.${newLvl}!`,
+        cfg.rarity,
+        powerDelta > 0 ? powerDelta : undefined
+      );
+      return true;
+    },
+    [commitPlayer, pushToast]
+  );
+
+  const deployBeastCompanion = useCallback(
+    (beastId: BeastId | null): void => {
+      const curPlayer = stateRef.current.player;
+      const curSettings = stateRef.current.settings;
+      const updated = deployBeast(curPlayer, beastId);
+      commitPlayer(updated);
+      soundManager.playLootSpawn(curSettings.soundEnabled, true);
+      if (beastId) {
+        const cfg = BEAST_CONFIGS[beastId];
+        const delta = updated.power - curPlayer.power;
+        pushToast(
+          `Đã xuất chiến Thần Thú [${cfg.name}] đồng hành!`,
+          cfg.rarity,
+          delta > 0 ? delta : undefined
+        );
+      } else {
+        pushToast('Đã thu hồi Thần Thú về Tiên Uyển.');
+      }
+    },
+    [commitPlayer, pushToast]
+  );
 
   // --- DEBUG ACTIONS (Section 24) ---
   const debugAddTowerExp = useCallback(
@@ -673,6 +881,20 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
     setSelectedItem(null);
   }, [commitPlayer]);
 
+  const debugAddMaterials = useCallback(() => {
+    const curPlayer = stateRef.current.player;
+    commitPlayer({
+      ...curPlayer,
+      materials: {
+        basicMaterial: curPlayer.materials.basicMaterial + 10000,
+        linhStone: curPlayer.materials.linhStone + 2000,
+        advancedMaterial: curPlayer.materials.advancedMaterial + 500,
+        rareMaterial: curPlayer.materials.rareMaterial + 100,
+      },
+    });
+    pushToast('Đã thêm 10,000 Linh Thiết & Nguyên Liệu Debug!');
+  }, [commitPlayer, pushToast]);
+
   const debugResetSave = useCallback(() => {
     clearSaveData();
     const freshPlayer = createInitialPlayerState();
@@ -711,11 +933,26 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
       dismantleBulkByRarity,
       updateSettings,
       claimOfflineReward,
+      isEnhanceModalOpen,
+      setIsEnhanceModalOpen,
+      activeEnhanceSlot,
+      setActiveEnhanceSlot,
+      openEnhanceModal,
+      enhanceSlot,
+      enhanceSlotMax: enhanceSlotMaxAction,
+      enhanceAllBalanced: enhanceAllBalancedAction,
+      isLeaderboardOpen,
+      setIsLeaderboardOpen,
+      openLeaderboardModal,
+      hatchEgg,
+      upgradeBeastLevel,
+      deployBeastCompanion,
       debugAddTowerExp,
       debugAddPlayerExp,
       debugSetTowerLevel,
       debugGenerateItem,
       debugSimulateOffline,
+      debugAddMaterials,
       debugClearInventory,
       debugResetSave,
     }),
@@ -739,11 +976,23 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
       dismantleBulkByRarity,
       updateSettings,
       claimOfflineReward,
+      isEnhanceModalOpen,
+      activeEnhanceSlot,
+      openEnhanceModal,
+      enhanceSlot,
+      enhanceSlotMaxAction,
+      enhanceAllBalancedAction,
+      isLeaderboardOpen,
+      openLeaderboardModal,
+      hatchEgg,
+      upgradeBeastLevel,
+      deployBeastCompanion,
       debugAddTowerExp,
       debugAddPlayerExp,
       debugSetTowerLevel,
       debugGenerateItem,
       debugSimulateOffline,
+      debugAddMaterials,
       debugClearInventory,
       debugResetSave,
     ]

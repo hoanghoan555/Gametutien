@@ -1,4 +1,6 @@
 import React from 'react';
+import { BeastIcon } from '../beast/BeastIcon';
+import { BEAST_CONFIGS } from '../../data/beasts';
 import { getRealmInfoForLevel } from '../../data/realms';
 import { usePlayerStore } from '../../stores/player.store';
 import { useTowerStore } from '../../stores/tower.store';
@@ -9,6 +11,12 @@ export const TowerScene: React.FC = () => {
   const { tower, cultivate, isCultivatingPulse } = useTowerStore();
   const { player } = usePlayerStore();
   const realmInfo = getRealmInfoForLevel(player.level);
+
+  const activeBeastId = player.beastState?.activeBeastId;
+  const activeBeast = activeBeastId ? BEAST_CONFIGS[activeBeastId] : null;
+  const activeRecord = activeBeastId
+    ? player.beastState?.beasts[activeBeastId]
+    : null;
 
   return (
     <div
@@ -179,7 +187,7 @@ export const TowerScene: React.FC = () => {
           <div className="pointer-events-none absolute w-16 h-16 rounded-full bg-emerald-500/15 blur-md animate-pulse-aura" />
 
           {/* Meditating Cultivator SVG */}
-          <div className="w-14 h-14 rounded-2xl bg-slate-900/90 border border-amber-500/35 flex items-center justify-center shadow-lg">
+          <div className="w-14 h-14 rounded-2xl bg-slate-900/90 border border-amber-500/35 flex items-center justify-center shadow-lg relative">
             <svg
               width="38"
               height="38"
@@ -225,6 +233,21 @@ export const TowerScene: React.FC = () => {
                 strokeLinecap="round"
               />
             </svg>
+
+            {/* Active Spirit Beast Flying Beside Cultivator */}
+            {activeBeast && (
+              <div
+                title={`${activeBeast.name} (Lv.${activeRecord?.level ?? 1}) - ${activeBeast.skillName}`}
+                className="absolute -right-12 -top-2 flex flex-col items-center animate-float-slow pointer-events-none"
+              >
+                <div className="w-9 h-9 rounded-xl bg-slate-950/95 border border-amber-400/60 shadow-[0_0_12px_rgba(245,158,11,0.35)] flex items-center justify-center">
+                  <BeastIcon id={activeBeast.id} size={18} />
+                </div>
+                <span className="text-[8px] font-mono-num font-bold text-amber-300 mt-0.5 whitespace-nowrap bg-slate-950/90 px-1 rounded border border-amber-500/40">
+                  +{activeRecord?.level ?? 1}
+                </span>
+              </div>
+            )}
           </div>
         </div>
 

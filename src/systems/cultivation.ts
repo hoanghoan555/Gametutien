@@ -100,10 +100,15 @@ function isPowerUpgrade(player: PlayerState, newItem: Item): boolean {
   const currentEquipped = player.equipment[newItem.type];
   if (!currentEquipped) return true;
 
-  const { power } = calculateStatsAndPower(player.level, {
-    ...player.equipment,
-    [newItem.type]: newItem,
-  });
+  const { power } = calculateStatsAndPower(
+    player.level,
+    {
+      ...player.equipment,
+      [newItem.type]: newItem,
+    },
+    player.enhancements,
+    player.beastState
+  );
   return power > player.power;
 }
 
@@ -183,7 +188,12 @@ export function processItemAcquisition(
       ...player.equipment,
       [newItem.type]: newItem,
     };
-    const { stats, power } = calculateStatsAndPower(player.level, updatedEquipment);
+    const { stats, power } = calculateStatsAndPower(
+      player.level,
+      updatedEquipment,
+      player.enhancements,
+      player.beastState
+    );
     const powerDelta = Math.max(0, power - oldPower);
 
     let updatedInventory = [...player.inventory];

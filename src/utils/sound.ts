@@ -91,6 +91,67 @@ class SoundManager {
       // Ignore audio errors
     }
   }
+
+  playEnhanceSuccess(enabled: boolean): void {
+    if (!enabled) return;
+    const ctx = this.getContext();
+    if (!ctx) return;
+
+    try {
+      const now = ctx.currentTime;
+      // Anvil resonance followed by celestial chime
+      const osc1 = ctx.createOscillator();
+      const gain1 = ctx.createGain();
+      osc1.type = 'triangle';
+      osc1.frequency.setValueAtTime(320, now);
+      osc1.frequency.exponentialRampToValueAtTime(160, now + 0.12);
+      gain1.gain.setValueAtTime(0.08, now);
+      gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+      osc1.connect(gain1);
+      gain1.connect(ctx.destination);
+      osc1.start(now);
+      osc1.stop(now + 0.15);
+
+      const notes = [659.25, 830.61, 987.77, 1318.5];
+      notes.forEach((freq, idx) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now + 0.05 + idx * 0.06);
+        gain.gain.setValueAtTime(0.045, now + 0.05 + idx * 0.06);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05 + idx * 0.06 + 0.3);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now + 0.05 + idx * 0.06);
+        osc.stop(now + 0.05 + idx * 0.06 + 0.32);
+      });
+    } catch {
+      // Ignore audio errors
+    }
+  }
+
+  playEnhanceFail(enabled: boolean): void {
+    if (!enabled) return;
+    const ctx = this.getContext();
+    if (!ctx) return;
+
+    try {
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(220, now);
+      osc.frequency.exponentialRampToValueAtTime(140, now + 0.18);
+      gain.gain.setValueAtTime(0.04, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.22);
+    } catch {
+      // Ignore audio errors
+    }
+  }
 }
 
 export const soundManager = new SoundManager();

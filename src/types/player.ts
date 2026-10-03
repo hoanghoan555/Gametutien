@@ -1,4 +1,5 @@
-import { EquipmentSlots, Item, DismantleMaterials } from './item';
+import { PlayerBeastState } from './beast';
+import { EquipmentSlots, EquipmentType, Item, DismantleMaterials } from './item';
 
 export interface PlayerStats {
   atk: number;
@@ -19,6 +20,8 @@ export interface PlayerState {
   power: number;
   stats: PlayerStats;
   equipment: EquipmentSlots;
+  enhancements?: Record<EquipmentType, number>;
+  beastState?: PlayerBeastState;
   inventory: Item[];
   materials: DismantleMaterials;
   contribution: number;

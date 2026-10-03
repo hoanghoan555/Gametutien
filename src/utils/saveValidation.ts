@@ -1,6 +1,15 @@
 import { AFFIX_CONFIGS } from '../data/affixes';
+import { BEAST_IDS } from '../data/beasts';
 import { EQUIPMENT_SLOTS_LIST } from '../data/equipment';
 import { RARITY_ORDER } from '../data/rarities';
+import {
+  createInitialBeastState,
+  MAX_BEAST_LEVEL,
+} from '../systems/beast';
+import {
+  createEmptyEnhancements,
+  MAX_ENHANCEMENT_LEVEL as MAX_ENH_LEVEL,
+} from '../systems/enhancement';
 import {
   createEmptyEquipmentSlots,
   createEmptyMaterials,
@@ -11,12 +20,14 @@ import {
   calculateStatsAndPower,
 } from '../systems/progression';
 import { calculateTowerExpToNextLevel } from '../systems/tower';
+import { BeastId, PlayerBeastState } from '../types/beast';
 import { SaveDataV1, SettingsState } from '../types/game';
 import {
   Affix,
   AffixType,
   DismantleMaterials,
   EquipmentSlots,
+  EquipmentType,
   Item,
   ItemStats,
   Rarity,
@@ -195,13 +206,64 @@ function sanitizeMaterials(raw: unknown): DismantleMaterials {
   };
 }
 
+function sanitizeEnhancements(raw: unknown): Record<EquipmentType, number> {
+  const empty = createEmptyEnhancements();
+  if (!isRecord(raw)) return empty;
+  for (const slot of EQUIPMENT_SLOTS_LIST) {
+    const val = raw[slot];
+    if (typeof val === 'number' && Number.isFinite(val) && val > 0) {
+      empty[slot] = Math.min(MAX_ENH_LEVEL, Math.floor(val));
+    }
+  }
+  return empty;
+}
+
+function sanitizeBeastState(raw: unknown): PlayerBeastState {
+  const initial = createInitialBeastState();
+  if (!isRecord(raw)) return initial;
+
+  const rawActive = raw.activeBeastId;
+  const activeBeastId =
+    typeof rawActive === 'string' && BEAST_IDS.includes(rawActive as BeastId)
+      ? (rawActive as BeastId)
+      : null;
+
+  const beasts = { ...initial.beasts };
+  if (isRecord(raw.beasts)) {
+    for (const id of BEAST_IDS) {
+      const entry = raw.beasts[id];
+      if (isRecord(entry)) {
+        beasts[id] = {
+          unlocked: toBoolean(entry.unlocked, false),
+          level: Math.min(MAX_BEAST_LEVEL, toFiniteInteger(entry.level, 0, 0)),
+        };
+      }
+    }
+  }
+
+  const validActive =
+    activeBeastId && beasts[activeBeastId]?.unlocked ? activeBeastId : null;
+
+  return {
+    activeBeastId: validActive,
+    beasts,
+  };
+}
+
 export function sanitizePlayerState(raw: unknown): PlayerState | null {
   if (!isRecord(raw)) return null;
 
   const level = toLevel(raw.level);
   const equipment = sanitizeEquipment(raw.equipment);
+  const enhancements = sanitizeEnhancements(raw.enhancements);
+  const beastState = sanitizeBeastState(raw.beastState);
   // §22: stats/power luôn được tính lại bằng công thức hiện hành khi nạp save.
-  const { stats, power } = calculateStatsAndPower(level, equipment);
+  const { stats, power } = calculateStatsAndPower(
+    level,
+    equipment,
+    enhancements,
+    beastState
+  );
 
   return {
     level,
@@ -214,6 +276,8 @@ export function sanitizePlayerState(raw: unknown): PlayerState | null {
     power,
     stats,
     equipment,
+    enhancements,
+    beastState,
     inventory: sanitizeInventory(raw.inventory),
     materials: sanitizeMaterials(raw.materials),
     contribution: toFiniteNumber(raw.contribution, 0, 0),

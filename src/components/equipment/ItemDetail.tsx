@@ -1,8 +1,9 @@
-import { Hammer, ShieldCheck, Sparkles, Undo2 } from 'lucide-react';
+import { Anvil, Hammer, ShieldCheck, Sparkles, Undo2 } from 'lucide-react';
 import React from 'react';
 import { EQUIPMENT_CONFIG } from '../../data/equipment';
 import { RARITY_CONFIG } from '../../data/rarities';
 import { useGameStore } from '../../stores/gameStore';
+import { getEnhancementTier } from '../../systems/enhancement';
 import { getDismantleReward } from '../../systems/equipment';
 import { getPowerDeltaIfEquipped } from '../../systems/progression';
 import { formatExactNumber } from '../../utils/number';
@@ -18,6 +19,7 @@ export const ItemDetail: React.FC = () => {
     equipItemFromInventory,
     unequipSlot,
     dismantleSingleItem,
+    openEnhanceModal,
   } = useGameStore();
 
   if (!selectedItem) return null;
@@ -28,6 +30,8 @@ export const ItemDetail: React.FC = () => {
   const isCurrentlyEquipped = equippedInSlot?.id === selectedItem.id;
   const powerDelta = getPowerDeltaIfEquipped(player, selectedItem);
   const dismantleReward = getDismantleReward(selectedItem);
+  const enhLevel = player.enhancements?.[selectedItem.type] ?? 0;
+  const tier = getEnhancementTier(enhLevel);
 
   return (
     <Modal
@@ -174,6 +178,31 @@ export const ItemDetail: React.FC = () => {
           </div>
         )}
 
+        {/* Slot Enhancement Info */}
+        <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Anvil className="w-4 h-4 text-amber-300 shrink-0" />
+            <div>
+              <div className="text-xs font-semibold text-slate-200">
+                Trận Pháp Ô {slotCfg.shortLabel}: <span className={tier.textColor}>{tier.tierName} +{enhLevel}</span>
+              </div>
+              <div className="text-[10px] text-slate-400">
+                Thuộc tính cường hóa cộng trực tiếp vào nhân vật
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedItem(null);
+              openEnhanceModal(selectedItem.type);
+            }}
+            className="text-xs text-amber-300 hover:text-amber-200 font-semibold px-2.5 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 cursor-pointer"
+          >
+            Luyện Trận →
+          </button>
+        </div>
+
         {/* Dismantle Preview */}
         {!isCurrentlyEquipped && (
           <div className="px-3 py-2 rounded-xl bg-slate-900/40 border border-slate-800/80 flex items-center justify-between text-xs">
@@ -204,14 +233,27 @@ export const ItemDetail: React.FC = () => {
         {/* Actions */}
         <div className="flex items-center gap-2 pt-1">
           {isCurrentlyEquipped ? (
-            <button
-              type="button"
-              onClick={() => unequipSlot(selectedItem.type)}
-              className="flex-1 min-h-[44px] py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs flex items-center justify-center gap-1.5 cursor-pointer"
-            >
-              <Undo2 className="w-4 h-4" />
-              <span>Tháo Trang Bị</span>
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedItem(null);
+                  openEnhanceModal(selectedItem.type);
+                }}
+                className="flex-1 min-h-[44px] py-2.5 px-4 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 font-semibold text-xs flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <Anvil className="w-4 h-4" />
+                <span>Cường Hóa Trận (+{enhLevel})</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => unequipSlot(selectedItem.type)}
+                className="min-h-[44px] py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <Undo2 className="w-4 h-4" />
+                <span>Tháo</span>
+              </button>
+            </>
           ) : (
             <>
               <button
